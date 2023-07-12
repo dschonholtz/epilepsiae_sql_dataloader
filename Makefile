@@ -1,4 +1,5 @@
-.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help install lint lint/flake8 lint/black
+.PHONY: clean clean-build clean-pyc clean-test coverage dist docs help install lint lint/flake8 lint/black \
+build-postgres run-postgres create-db drop-db
 .DEFAULT_GOAL := help
 
 define BROWSER_PYSCRIPT
@@ -87,3 +88,29 @@ dist: clean ## builds source and wheel package
 
 install: clean ## install the package to the active Python's site-packages
 	python setup.py install
+
+
+### POSTGRESQL SECTION
+
+IMAGE_NAME := seizure_db_image
+CONTAINER_NAME := seizure_db
+USERNAME := postgres
+
+build-postgres:
+	docker build -t $(IMAGE_NAME) .
+
+run-postgres: build-postgres
+	docker run -d --name $(CONTAINER_NAME) \
+	  -p 5432:5432 \
+	  -v /scratch/postgres/data:/var/lib/postgresql/data \
+	  --restart always \
+	  $(IMAGE_NAME)
+
+create-db:
+	docker exec -it -e PGPASSWORD=postgres $(CONTAINER_NAME) psql -U $(USERNAME) -c "CREATE DATABASE $(CONTAINER_NAME);"
+
+create-test-db:
+	docker exec -it -e PGPASSWORD=postgres $(CONTAINER_NAME) psql -U $(USERNAME) -c "CREATE DATABASE $(CONTAINER_NAME)_test;"
+
+drop-db:
+	docker exec -it -e PGPASSWORD=postgres $(CONTAINER_NAME) psql -U $(USERNAME) -c "DROP DATABASE $(CONTAINER_NAME);"

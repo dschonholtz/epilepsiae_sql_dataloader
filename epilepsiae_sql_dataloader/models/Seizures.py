@@ -1,5 +1,5 @@
-from sqlalchemy import Column, Integer, DateTime
-from sqlalchemy.orm import declarative_base
+from sqlalchemy import Column, Integer, DateTime, ForeignKey
+from sqlalchemy.orm import declarative_base, relationship
 
 """
 Example seizure file
@@ -20,12 +20,15 @@ Example seizure file
 
 class Seizure(declarative_base()):
     __tablename__ = 'seizures'
+
     id = Column(Integer, primary_key=True)
-    pat_id = Column(Integer, nullable=False)
+    pat_id = Column(Integer, ForeignKey('patients.id'), nullable=False)
     onset = Column(DateTime, nullable=False)
     offset = Column(DateTime, nullable=False)
     onset_sample = Column(Integer, nullable=False)
     offset_sample = Column(Integer, nullable=False)
+
+    patient = relationship('Patient', back_populates='seizures')
 
     def __repr__(self):
         return f"<Seizure(onset={self.onset}, " \

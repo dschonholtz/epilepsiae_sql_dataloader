@@ -1,5 +1,6 @@
-from sqlalchemy.orm import declarative_base
-from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+
 
 """
 Example header file
@@ -27,12 +28,15 @@ class Sample(declarative_base()):
     conversion_factor = Column(Float, nullable=False)
     num_channels = Column(Integer, nullable=False)
     elec_names = Column(String, nullable=False)
-    pat_id = Column(Integer, nullable=False)
+    pat_id = Column(Integer, ForeignKey('patients.id'), nullable=False)
     adm_id = Column(Integer, nullable=False)
     rec_id = Column(Integer, nullable=False)
     duration_in_sec = Column(Integer, nullable=False)
     sample_bytes = Column(Integer, nullable=False)
     data_file = Column(String, nullable=False)
+
+    patient = relationship('Patient', back_populates='samples')
+    chunks = relationship('DataChunk', back_populates='samples')
 
     def __repr__(self):
         return f"<Sample(start_ts={self.start_ts}, " \
