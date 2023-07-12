@@ -30,7 +30,8 @@ This leverages the https://epilepsiae.uniklinik-freiburg.de/ epilepsy dataset to
 Features
 --------
 
-* TODO
+* Build SQL Alchemy Tables that all of the epilepsiae data can be loaded into and be queried from
+* Build a dataloader that can be used to load data into a ML model
 
 Credits
 -------
