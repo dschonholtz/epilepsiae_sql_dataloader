@@ -1,0 +1,243 @@
+"""
+Uses the SQL Alchemy models in models/ to load everything you could possibly want to the database
+"""
+
+import os
+import glob
+import numpy as np
+import pandas as pd
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base
+import csv
+from pathlib import Path
+from datetime import datetime
+import pandas as pd
+from pandas import DataFrame
+from pandas import to_datetime
+
+from epilepsiae_sql_dataloader.utils import get_session, ENGINE_STR
+from epilepsiae_sql_dataloader.models.Sample import Sample
+from epilepsiae_sql_dataloader.models.Seizures import Seizure
+
+
+class MetaDataBuilder(object):
+    def __init__(self, session):
+        self.session = session
+
+    def get_samples(self):
+        """
+        Get all samples from the database.
+        """
+        samples = self.session.query(Sample).all()
+        return samples
+
+    def read_seizure_data(self, fp: Path):
+        """
+        Read in the data from the seizurefile
+        # colums are tab-separated:
+        # onset	offset	onset_sample	offset_sample
+        2008-11-11 06:10:03.416992	2008-11-11 06:10:08.325195	1526187	1531213
+
+        2008-11-11 06:35:33.729492	2008-11-11 06:35:39.258789	3093227	3098889
+
+        2008-11-11 07:25:57.974609	2008-11-11 07:26:03.691406	2466790	2472644
+
+        2008-11-11 07:54:56.308594	2008-11-11 07:55:01.308594	558396	563516
+        """
+
+        def str_to_datetime(x):
+            try:
+                if "." not in x:
+                    x += ".000000"
+                return datetime.strptime(x, "%Y-%m-%d %H:%M:%S.%f")
+            except ValueError:
+                return np.nan
+
+        # Function to convert string to int
+        def str_to_int(x):
+            try:
+                return int(x)
+            except ValueError:
+                return np.nan
+
+        # Define converters
+        converters = {
+            0: str_to_datetime,
+            1: str_to_datetime,
+            2: str_to_int,
+            3: str_to_int,
+        }
+
+        # Read the file using pandas, which can handle comments and ignore blank lines
+        data = pd.read_csv(
+            fp,
+            delimiter="\t",
+            comment="#",
+            skip_blank_lines=True,
+            header=None,
+            converters=converters,
+        )
+        data = data.dropna()
+
+        # Convert the DataFrame to a numpy array and return
+        return data.values
+
+    def load_seizure_data_to_db(self, session, data, pat_id: int):
+        """
+        Load the seizure data into the database.
+        Data has been cast to a numpy array [datetime, datetime, int, int]
+        """
+        for row in data:
+            onset = row[0]
+            offset = row[1]
+            onset_sample = row[2]
+            offset_sample = row[3]
+            seizure = Seizure(
+                pat_id=int(pat_id),
+                onset=onset,
+                offset=offset,
+                onset_sample=int(onset_sample),
+                offset_sample=int(offset_sample),
+            )
+            session.add(seizure)
+        session.commit()
+
+    def read_sample_data(self, fp: Path):
+        """
+        Format of file:
+        start_ts=2008-11-03 20:34:03.000
+        num_samples=3686400
+        sample_freq=1024
+        conversion_factor=0.179000
+        num_channels=93
+        elec_names=[GA1,GA2,GA3,GA4,GA5,GA6,GA7,GA8,GB1,GB2,GB3,GB4,GB5,GB6,GB7,GB8,GC1,GC2,GC3,GC4,GC5,GC6,GC7,GC8,GD1,GD2,GD3,GD4,GD5,GD6,GD7,GD8,GE1,GE2,GE3,GE4,GE5,GE6,GE7,GE8,GF1,GF2,GF3,GF4,GF5,GF6,GF7,GF8,GG1,GG2,GG3,GG4,GG5,GG6,GG7,GG8,GH1,GH2,GH3,GH4,GH5,GH6,GH7,GH8,M1,M2,M3,M4,M5,M6,M7,M8,IHA1,IHA2,IHA3,IHA4,IHB1,IHB2,IHB3,IHB4,IHC1,IHC2,IHC3,IHC4,IHD1,IHD2,IHD3,IHD4,FL1,FL2,FL3,FL4,ECG]
+        pat_id=108402
+        adm_id=1084102
+        rec_id=108400102
+        duration_in_sec=3600
+        sample_bytes=2
+
+            id = Column(Integer, primary_key=True)
+        start_ts = Column(DateTime, nullable=False)
+        num_samples = Column(Integer, nullable=False)
+        sample_freq = Column(Integer, nullable=False)
+        conversion_factor = Column(Float, nullable=False)
+        num_channels = Column(Integer, nullable=False)
+        elec_names = Column(String, nullable=False)
+        pat_id = Column(Integer, nullable=False)
+        adm_id = Column(Integer, nullable=False)
+        rec_id = Column(Integer, nullable=False)
+        duration_in_sec = Column(Integer, nullable=False)
+        sample_bytes = Column(Integer, nullable=False)
+        seizure_id = Column(Integer, ForeignKey('seizures.id'))
+
+        We need to make sure that everything is the right type
+
+        :param fp: a file path to the sample data
+        :return: A DataFrame that will be easily loaded to pandas later
+        """
+        # Define the expected mandatory fields
+        mandatory_fields = {
+            "start_ts",
+            "num_samples",
+            "sample_freq",
+            "num_channels",
+            "pat_id",
+            "adm_id",
+            "rec_id",
+            "duration_in_sec",
+        }
+
+        data = {}
+        with fp.open("r") as f:
+            reader = csv.reader(f, delimiter="=")
+            for line in reader:
+                key, value = line
+                if key.startswith("#"):
+                    continue
+                if key == "elec_names":
+                    value = [",".join(value[1:-1].split(","))]
+                elif key == "start_ts":
+                    try:
+                        value = [to_datetime(value)]
+                    except ValueError:
+                        if key in mandatory_fields:
+                            return DataFrame()  # Bad format for a mandatory field
+                elif key in mandatory_fields:
+                    try:
+                        value = [int(value)]
+                    except ValueError:
+                        return DataFrame()  # Bad format for a mandatory field
+                elif key == "conversion_factor":
+                    try:
+                        value = [float(value)]
+                    except ValueError:
+                        # Bad format for conversion_factor, but it's not mandatory
+                        continue
+                else:
+                    # Non-mandatory field with an unexpected type
+                    continue
+                data[key] = value
+
+        # Check if all mandatory fields are present
+        if not mandatory_fields.issubset(data.keys()):
+            return (
+                DataFrame()
+            )  # Return an empty DataFrame if any mandatory field is missing
+
+        return DataFrame(data)
+
+    def load_sample_dir_to_db(self, session, directory):
+        """
+        Load the sample data into the database.
+        """
+        adm_dirs = glob.glob(os.path.join(directory, "adm_*"))
+        for adm_dir in adm_dirs:
+            rec_dirs = glob.glob(os.path.join(adm_dir, "rec_*"))
+            for rec_dir in rec_dirs:
+                head_files = glob.glob(os.path.join(rec_dir, "*.head"))
+                for head_file in head_files:
+                    data = self.read_sample_data(head_file)
+                    data["data_file"] = head_file.replace(".head", ".data")
+                    sample = Sample(**data)
+                    session.add(sample)
+                session.commit()
+
+    def load_data_in_pat_dir(self, session, directory):
+        print(directory)
+        pathed = Path(directory)
+        pat_id = directory.split("/")[-1]
+        data = self.read_seizure_data(pathed / "seizurelist")
+        self.load_seizure_data_to_db(session, data, pat_id.split("_")[1])
+        self.load_sample_dir_to_db(session, directory)
+
+    def load_data(self, paths):
+        """
+        Each has a pat dir of the format pat_#####
+        In each pat we have a seizurelist
+        :return:
+        """
+
+        # nuke everything every time while doing lots of dev. Don't do that later plz
+        for path in paths:
+            for directory in glob.glob(path):
+                self.load_data_in_pat_dir(directory)
+
+
+def main():
+    # nuke everything every time while doing lots of dev. Don't do that later plz
+    engine = create_engine(ENGINE_STR)
+    declarative_base().metadata.drop_all(engine)
+
+    # get the session with a context manager to make sure we close it!
+    with get_session() as session:
+        loader = MetaDataBuilder(session)
+        paths = [
+            "/mnt/wines/intra/original_data/inv/pat_*",
+            "/mnt/wines/intra/original_data/inv2/pat_*",
+        ]
+        loader.start_over_and_load_data(paths)
+
+
+if __name__ == "__main__":
+    main()
