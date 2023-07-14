@@ -195,7 +195,7 @@ class MetaDataBuilder(object):
 
         return DataFrame(data)
 
-    def load_sample_dir_to_db(self, session, directory):
+    def load_sample_dir_to_db(self, directory):
         """
         Load the sample data into the database.
         """
@@ -208,8 +208,8 @@ class MetaDataBuilder(object):
                     data = self.read_sample_data(head_file)
                     data["data_file"] = head_file.replace(".head", ".data")
                     sample = Sample(**data)
-                    session.add(sample)
-                session.commit()
+                    self.session.add(sample)
+                self.session.commit()
 
     def load_data_in_pat_dir(self, session, directory):
         print(directory)
