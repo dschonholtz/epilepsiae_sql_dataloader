@@ -2,16 +2,16 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
 
-ENGINE_STR = 'postgresql+psycopg2://postgres:postgres@localhost/seizure_db'
+ENGINE_STR = "postgresql+psycopg2://postgres:postgres@localhost/seizure_db"
 
 
-def get_session():
+def get_session(engine_str=ENGINE_STR):
     """
     Create a session to the database.
     """
     # Create an engine that stores data in the local directory's
     # on the server we could easily stuff this on /mnt/wines if we wanted to
-    engine = create_engine(ENGINE_STR)
+    engine = create_engine(engine_str)
     declarative_base().metadata.create_all(engine)
 
     # Create all tables in the engine. This is equivalent to "Create Table"
