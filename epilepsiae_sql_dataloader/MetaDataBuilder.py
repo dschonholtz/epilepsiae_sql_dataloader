@@ -2,7 +2,6 @@
 Uses the SQL Alchemy models in models/ to load everything you could possibly want to the database
 """
 
-import os
 import glob
 import numpy as np
 import pandas as pd
@@ -18,6 +17,9 @@ from pandas import to_datetime
 from epilepsiae_sql_dataloader.utils import get_session, ENGINE_STR
 from epilepsiae_sql_dataloader.models.Sample import Sample
 from epilepsiae_sql_dataloader.models.Seizures import Seizure
+
+import sys
+import click
 
 
 class MetaDataBuilder(object):
@@ -173,10 +175,16 @@ class MetaDataBuilder(object):
                         value = [float(value)]
                     except ValueError:
                         # Bad format for conversion_factor, but it's not mandatory
-                        continue
+                        data[key] = None
+                elif key == "sample_bytes":
+                    try:
+                        value = [int(value)]
+                    except ValueError:
+                        # Bad format for sample_bytes, but it's not mandatory
+                        data[key] = None
                 else:
                     # Non-mandatory field with an unexpected type
-                    continue
+                    data[key] = None
                 data[key] = value
 
         # Check if all mandatory fields are present
@@ -191,11 +199,11 @@ class MetaDataBuilder(object):
         """
         Load the sample data into the database.
         """
-        adm_dirs = glob.glob(os.path.join(directory, "adm_*"))
+        adm_dirs = directory.glob("adm_*")
         for adm_dir in adm_dirs:
-            rec_dirs = glob.glob(os.path.join(adm_dir, "rec_*"))
+            rec_dirs = adm_dir.glob("rec_*")
             for rec_dir in rec_dirs:
-                head_files = glob.glob(os.path.join(rec_dir, "*.head"))
+                head_files = rec_dir.glob("*.head")
                 for head_file in head_files:
                     data = self.read_sample_data(head_file)
                     data["data_file"] = head_file.replace(".head", ".data")
@@ -217,27 +225,39 @@ class MetaDataBuilder(object):
         In each pat we have a seizurelist
         :return:
         """
-
-        # nuke everything every time while doing lots of dev. Don't do that later plz
         for path in paths:
             for directory in glob.glob(path):
                 self.load_data_in_pat_dir(directory)
 
 
-def main():
-    # nuke everything every time while doing lots of dev. Don't do that later plz
-    engine = create_engine(ENGINE_STR)
-    declarative_base().metadata.drop_all(engine)
+@click.command()
+@click.option(
+    "--directories",
+    multiple=True,
+    default=["/mnt/wines/intra/original_data/inv"],
+    help="Directories to hunt for.",
+)
+@click.option("--engine-str", default=ENGINE_STR, help="Engine string for postgreSQL.")
+@click.option("--drop-tables", is_flag=True, help="Drop all previous tables.")
+def main(directories, engine_str, drop_tables):
+    """Console script for epilepsiae_sql_dataloader."""
+    if drop_tables:
+        engine = create_engine(engine_str)
+        declarative_base().metadata.drop_all(engine)
 
-    # get the session with a context manager to make sure we close it!
-    with get_session() as session:
+    with get_session(engine_str) as session:
         loader = MetaDataBuilder(session)
-        paths = [
-            "/mnt/wines/intra/original_data/inv/pat_*",
-            "/mnt/wines/intra/original_data/inv2/pat_*",
-        ]
+        paths = []
+        for dir in directories:
+            paths.extend(
+                [
+                    f"{dir}/pat_*",
+                ]
+            )
         loader.start_over_and_load_data(paths)
+
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
