@@ -23,6 +23,7 @@ endef
 export PRINT_HELP_PYSCRIPT
 
 BROWSER := python -c "$$BROWSER_PYSCRIPT"
+POSTGRES_DATA_PATH := "/mnt/external2/data"
 
 help:
 	@python -c "$$PRINT_HELP_PYSCRIPT" < $(MAKEFILE_LIST)
@@ -102,7 +103,7 @@ build-postgres:
 run-postgres: build-postgres
 	docker run -d --name $(CONTAINER_NAME) \
 	  -p 5432:5432 \
-	  -v /mnt/external2/data:/var/lib/postgresql/data \
+	  -v $(POSTGRES_DATA_PATH):/var/lib/postgresql/data \
 	  --restart always \
 	  $(IMAGE_NAME)
 
