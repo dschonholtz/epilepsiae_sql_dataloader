@@ -254,7 +254,7 @@ def main(directories, engine_str, drop_tables):
                     f"{dir}/pat_*",
                 ]
             )
-        loader.start_over_and_load_data(paths)
+        loader.load_data(paths)
 
     return 0
 

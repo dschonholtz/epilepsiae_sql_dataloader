@@ -102,7 +102,7 @@ build-postgres:
 run-postgres: build-postgres
 	docker run -d --name $(CONTAINER_NAME) \
 	  -p 5432:5432 \
-	  -v /scratch/postgres/data:/var/lib/postgresql/data \
+	  -v /mnt/external2/data:/var/lib/postgresql/data \
 	  --restart always \
 	  $(IMAGE_NAME)
 
@@ -114,3 +114,6 @@ create-test-db:
 
 drop-db:
 	docker exec -it -e PGPASSWORD=postgres $(CONTAINER_NAME) psql -U $(USERNAME) -c "DROP DATABASE $(CONTAINER_NAME);"
+
+drop-test-db:
+	docker exec -it -e PGPASSWORD=postgres $(CONTAINER_NAME) psql -U $(USERNAME) -c "DROP DATABASE $(CONTAINER_NAME)_test;"
