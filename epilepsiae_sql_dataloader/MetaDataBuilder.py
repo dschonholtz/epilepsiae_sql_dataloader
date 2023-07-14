@@ -21,17 +21,37 @@ from epilepsiae_sql_dataloader.models.Seizures import Seizure
 import sys
 import click
 
+from contextlib import contextmanager
+from sqlalchemy.orm import sessionmaker
+
+
+@contextmanager
+def session_scope(engine_str):
+    """Provide a transactional scope around a series of operations."""
+    engine = create_engine(engine_str)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()
+
 
 class MetaDataBuilder(object):
-    def __init__(self, session):
-        self.session = session
+    def __init__(self, engine_str):
+        self.engine_str = engine_str
 
     def get_samples(self):
         """
         Get all samples from the database.
         """
-        samples = self.session.query(Sample).all()
-        return samples
+        with session_scope(self.engine_str) as session:
+            samples = session.query(Sample).all()
+            return samples
 
     def read_seizure_data(self, fp: Path):
         """
@@ -84,25 +104,25 @@ class MetaDataBuilder(object):
         # Convert the DataFrame to a numpy array and return
         return data.values
 
-    def load_seizure_data_to_db(self, session, data, pat_id: int):
+    def load_seizure_data_to_db(self, data, pat_id: int):
         """
         Load the seizure data into the database.
         Data has been cast to a numpy array [datetime, datetime, int, int]
         """
-        for row in data:
-            onset = row[0]
-            offset = row[1]
-            onset_sample = row[2]
-            offset_sample = row[3]
-            seizure = Seizure(
-                pat_id=int(pat_id),
-                onset=onset,
-                offset=offset,
-                onset_sample=int(onset_sample),
-                offset_sample=int(offset_sample),
-            )
-            session.add(seizure)
-        session.commit()
+        with session_scope(self.engine_str) as session:
+            for row in data:
+                onset = row[0]
+                offset = row[1]
+                onset_sample = row[2]
+                offset_sample = row[3]
+                seizure = Seizure(
+                    pat_id=int(pat_id),
+                    onset=onset,
+                    offset=offset,
+                    onset_sample=int(onset_sample),
+                    offset_sample=int(offset_sample),
+                )
+                session.add(seizure)
 
     def read_sample_data(self, fp: Path):
         """
@@ -204,20 +224,20 @@ class MetaDataBuilder(object):
             rec_dirs = adm_dir.glob("rec_*")
             for rec_dir in rec_dirs:
                 head_files = rec_dir.glob("*.head")
-                for head_file in head_files:
-                    data = self.read_sample_data(head_file)
-                    data["data_file"] = head_file.replace(".head", ".data")
-                    sample = Sample(**data)
-                    self.session.add(sample)
-                self.session.commit()
+                with session_scope(self.engine_str) as session:
+                    for head_file in head_files:
+                        data = self.read_sample_data(head_file)
+                        data["data_file"] = head_file.replace(".head", ".data")
+                        sample = Sample(**data)
+                        session.add(sample)
 
-    def load_data_in_pat_dir(self, session, directory):
+    def load_data_in_pat_dir(self, directory):
         print(directory)
         pathed = Path(directory)
         pat_id = directory.split("/")[-1]
         data = self.read_seizure_data(pathed / "seizurelist")
-        self.load_seizure_data_to_db(session, data, pat_id.split("_")[1])
-        self.load_sample_dir_to_db(session, directory)
+        self.load_seizure_data_to_db(data, pat_id.split("_")[1])
+        self.load_sample_dir_to_db(directory)
 
     def load_data(self, paths):
         """
@@ -245,16 +265,15 @@ def main(directories, engine_str, drop_tables):
         engine = create_engine(engine_str)
         declarative_base().metadata.drop_all(engine)
 
-    with get_session(engine_str) as session:
-        loader = MetaDataBuilder(session)
-        paths = []
-        for dir in directories:
-            paths.extend(
-                [
-                    f"{dir}/pat_*",
-                ]
-            )
-        loader.load_data(paths)
+    loader = MetaDataBuilder(engine_str)
+    paths = []
+    for dir in directories:
+        paths.extend(
+            [
+                f"{dir}/pat_*",
+            ]
+        )
+    loader.load_data(paths)
 
     return 0
 
