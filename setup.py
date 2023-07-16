@@ -10,7 +10,14 @@ with open("README.rst") as readme_file:
 with open("HISTORY.rst") as history_file:
     history = history_file.read()
 
-requirements = ["Click>=7.0", "SQLAlchemy", "psycopg2-binary", "numpy", "pandas"]
+requirements = [
+    "Click>=7.0",
+    "SQLAlchemy",
+    "psycopg2-binary",
+    "numpy",
+    "pandas",
+    "selenium",
+]
 
 test_requirements = [
     "pytest>=3",
