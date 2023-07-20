@@ -25,3 +25,23 @@ def get_session(engine_str=ENGINE_STR):
     session = db_session()
 
     return session
+
+
+from contextlib import contextmanager
+from sqlalchemy.orm import sessionmaker
+
+
+@contextmanager
+def session_scope(engine_str):
+    """Provide a transactional scope around a series of operations."""
+    engine = create_engine(engine_str)
+    Session = sessionmaker(bind=engine)
+    session = Session()
+    try:
+        yield session
+        session.commit()
+    except:
+        session.rollback()
+        raise
+    finally:
+        session.close()

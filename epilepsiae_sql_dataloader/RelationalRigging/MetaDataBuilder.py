@@ -14,31 +14,12 @@ import pandas as pd
 from pandas import DataFrame
 from pandas import to_datetime
 
-from epilepsiae_sql_dataloader.utils import get_session, ENGINE_STR
+from epilepsiae_sql_dataloader.utils import ENGINE_STR, session_scope
 from epilepsiae_sql_dataloader.models.Sample import Sample
 from epilepsiae_sql_dataloader.models.Seizures import Seizure
 
 import sys
 import click
-
-from contextlib import contextmanager
-from sqlalchemy.orm import sessionmaker
-
-
-@contextmanager
-def session_scope(engine_str):
-    """Provide a transactional scope around a series of operations."""
-    engine = create_engine(engine_str)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    try:
-        yield session
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
 
 
 class MetaDataBuilder(object):

@@ -11,12 +11,13 @@ base_remote_dir = "/mnt/external1/raw"
 def scp_to_server(sub_dir):
     # specify the remote directory path based on the sub_dir
     remote_dir = os.path.join(base_remote_dir, sub_dir)
-
+    if sub_dir == "inv_30":
+        remote_dir = remote_dir.replace("inv_30", "inv")
     # specify the local directory path
     local_base_dir = "seizurelists"
     local_dir = os.path.join(local_base_dir, sub_dir)
     # the local dir is one dir up from this file:
-    local_dir = Path(__file__).parent.parent / local_dir
+    local_dir = Path(__file__).parent.parent.parent / local_dir
     local_dirs = os.listdir(local_dir)
 
     # iterate over each local directory
