@@ -208,7 +208,7 @@ class MetaDataBuilder(object):
                 with session_scope(self.engine_str) as session:
                     for head_file in head_files:
                         data = self.read_sample_data(head_file)
-                        data["data_file"] = head_file.replace(".head", ".data")
+                        data["data_file"] = str(head_file).replace(".head", ".data")
                         sample = Sample(**data)
                         session.add(sample)
 
