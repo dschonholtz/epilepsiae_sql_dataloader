@@ -196,7 +196,7 @@ class MetaDataBuilder(object):
 
         return DataFrame(data)
 
-    def load_sample_dir_to_db(self, directory):
+    def load_sample_dir_to_db(self, directory: Path):
         """
         Load the sample data into the database.
         """
@@ -214,11 +214,11 @@ class MetaDataBuilder(object):
 
     def load_data_in_pat_dir(self, directory):
         print(directory)
-        pathed = Path(directory)
+        directory_path = Path(directory)
         pat_id = directory.split("/")[-1]
-        data = self.read_seizure_data(pathed / "seizure_list")
+        data = self.read_seizure_data(directory_path / "seizure_list")
         self.load_seizure_data_to_db(data, pat_id.split("_")[1])
-        self.load_sample_dir_to_db(directory)
+        self.load_sample_dir_to_db(directory_path)
 
     def load_data(self, paths):
         """
