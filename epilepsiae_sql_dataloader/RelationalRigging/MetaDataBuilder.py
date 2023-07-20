@@ -202,9 +202,9 @@ class MetaDataBuilder(object):
         """
         adm_dirs = directory.glob("adm_*")
         for adm_dir in adm_dirs:
-            rec_dirs = adm_dir.glob("rec_*")
+            rec_dirs = Path(adm_dir).glob("rec_*")
             for rec_dir in rec_dirs:
-                head_files = rec_dir.glob("*.head")
+                head_files = Path(rec_dir).glob("*.head")
                 with session_scope(self.engine_str) as session:
                     for head_file in head_files:
                         data = self.read_sample_data(head_file)
