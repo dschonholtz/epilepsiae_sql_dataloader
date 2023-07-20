@@ -216,7 +216,7 @@ class MetaDataBuilder(object):
         print(directory)
         pathed = Path(directory)
         pat_id = directory.split("/")[-1]
-        data = self.read_seizure_data(pathed / "seizurelist")
+        data = self.read_seizure_data(pathed / "seizure_list")
         self.load_seizure_data_to_db(data, pat_id.split("_")[1])
         self.load_sample_dir_to_db(directory)
 
