@@ -2,6 +2,8 @@
 
 import pytest
 from epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder import MetaDataBuilder
+from epilepsiae_sql_dataloader.utils import session_scope
+from epilepsiae_sql_dataloader.models.Sample import Sample
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
@@ -16,6 +18,8 @@ seizure_data_missing_values_path = seizure_list_base / "seizure_data_missing_val
 seizure_data_invalid_datetime_path = (
     seizure_list_base / "seizure_data_invalid_datetime.txt"
 )
+
+ENGINE_STR = "postgresql+psycopg2://postgres:postgres@localhost/seizure_db_test"
 
 
 class TestReadSeizureData:
@@ -127,3 +131,23 @@ class TestReadSampleData:
         df = builder.read_sample_data(self.mistyped_head)
         assert isinstance(df, DataFrame)
         assert df.empty
+
+
+class TestFileGenerator:
+    # Tests that the method returns a generator when a valid directory path is passed as input
+    def test_valid_directory_path(self):
+        builder = MetaDataBuilder(ENGINE_STR)
+        directory = Path("tests/test_data/file_generator_test")
+        assert len(list(builder.file_generator(directory))) == 1
+
+    # Tests that the method returns an empty generator when an empty directory is passed as input
+    def test_empty_directory(self):
+        builder = MetaDataBuilder(ENGINE_STR)
+        directory = Path("tests/test_data/file_generator_test/empty")
+        assert len(list(builder.file_generator(directory))) == 0
+
+    # Tests that the method returns an empty generator when the rec_* directories do not contain any *.head files
+    def test_no_head_files(self):
+        builder = MetaDataBuilder(ENGINE_STR)
+        directory = Path("tests/test_data/seizurelists")
+        assert len(list(builder.file_generator(directory))) == 0

@@ -196,21 +196,29 @@ class MetaDataBuilder(object):
 
         return DataFrame(data)
 
+    def file_generator(self, directory):
+        adm_dirs = directory.glob("adm_*")
+        for adm_dir in adm_dirs:
+            rec_dirs = adm_dir.glob("rec_*")
+            for rec_dir in rec_dirs:
+                head_files = rec_dir.glob("*.head")
+                for head_file in head_files:
+                    yield head_file
+
     def load_sample_dir_to_db(self, directory: Path):
         """
         Load the sample data into the database.
         """
-        adm_dirs = directory.glob("adm_*")
-        for adm_dir in adm_dirs:
-            rec_dirs = Path(adm_dir).glob("rec_*")
-            for rec_dir in rec_dirs:
-                head_files = Path(rec_dir).glob("*.head")
+        for head_file in self.file_generator(directory):
+            try:
+                data = self.read_sample_data(head_file)
+                print(data)
+                data["data_file"] = str(head_file.with_suffix(".data"))
                 with session_scope(self.engine_str) as session:
-                    for head_file in head_files:
-                        data = self.read_sample_data(head_file)
-                        data["data_file"] = str(head_file).replace(".head", ".data")
-                        sample = Sample(**data)
-                        session.add(sample)
+                    sample = Sample(**data)
+                    session.add(sample)
+            except Exception as e:
+                print(f"Error processing file {head_file}: {e}")
 
     def load_data_in_pat_dir(self, directory):
         print(directory)
@@ -249,6 +257,8 @@ def main(directories, engine_str, drop_tables):
     loader = MetaDataBuilder(engine_str)
     paths = []
     for dir in directories:
+        # If the dir ends in inv create the inv dataset if it doesn't already exist
+        # if the dir ends in surf30 create the surf dataset if it doesn't already exist
         paths.extend(
             [
                 f"{dir}/pat_*",

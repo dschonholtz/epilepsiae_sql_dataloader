@@ -19,21 +19,22 @@ Example seizure file
 
 
 class Seizure(declarative_base()):
-    __tablename__ = 'seizures'
+    __tablename__ = "seizures"
 
     id = Column(Integer, primary_key=True)
-    pat_id = Column(Integer, ForeignKey('patients.id'), nullable=False)
+    pat_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
     onset = Column(DateTime, nullable=False)
     offset = Column(DateTime, nullable=False)
     onset_sample = Column(Integer, nullable=False)
     offset_sample = Column(Integer, nullable=False)
 
-    patient = relationship('Patient', back_populates='seizures')
+    patient = relationship("Patient", back_populates="seizures")
 
     def __repr__(self):
-        return f"<Seizure(onset={self.onset}, " \
-               f"offset={self.offset}, " \
-               f"onset_sample={self.onset_sample}, " \
-               f"offset_sample={self.offset_sample}, " \
-               f"pat_id={self.pat_id})>"
-
+        return (
+            f"<Seizure(onset={self.onset}, "
+            f"offset={self.offset}, "
+            f"onset_sample={self.onset_sample}, "
+            f"offset_sample={self.offset_sample}, "
+            f"pat_id={self.pat_id})>"
+        )

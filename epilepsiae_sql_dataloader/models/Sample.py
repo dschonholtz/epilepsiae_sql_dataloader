@@ -28,26 +28,27 @@ class Sample(declarative_base()):
     conversion_factor = Column(Float, nullable=False)
     num_channels = Column(Integer, nullable=False)
     elec_names = Column(String, nullable=False)
-    pat_id = Column(Integer, ForeignKey('patients.id'), nullable=False)
+    pat_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
     adm_id = Column(Integer, nullable=False)
     rec_id = Column(Integer, nullable=False)
     duration_in_sec = Column(Integer, nullable=False)
     sample_bytes = Column(Integer, nullable=False)
     data_file = Column(String, nullable=False)
 
-    patient = relationship('Patient', back_populates='samples')
-    chunks = relationship('DataChunk', back_populates='samples')
+    patient = relationship("Patient", back_populates="samples")
 
     def __repr__(self):
-        return f"<Sample(start_ts={self.start_ts}, " \
-               f"num_samples={self.num_samples}, " \
-               f"sample_freq={self.sample_freq}, " \
-               f"conversion_factor={self.conversion_factor}, " \
-               f"num_channels={self.num_channels}, " \
-               f"elec_names={self.elec_names}, " \
-               f"pat_id={self.pat_id}, " \
-               f"adm_id={self.adm_id}, " \
-               f"rec_id={self.rec_id}, " \
-               f"duration_in_sec={self.duration_in_sec}, " \
-               f"sample_bytes={self.sample_bytes})" \
-               f"data_file={self.data_file}>"
+        return (
+            f"<Sample(start_ts={self.start_ts}, "
+            f"num_samples={self.num_samples}, "
+            f"sample_freq={self.sample_freq}, "
+            f"conversion_factor={self.conversion_factor}, "
+            f"num_channels={self.num_channels}, "
+            f"elec_names={self.elec_names}, "
+            f"pat_id={self.pat_id}, "
+            f"adm_id={self.adm_id}, "
+            f"rec_id={self.rec_id}, "
+            f"duration_in_sec={self.duration_in_sec}, "
+            f"sample_bytes={self.sample_bytes})"
+            f"data_file={self.data_file}>"
+        )

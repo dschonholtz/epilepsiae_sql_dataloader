@@ -21,14 +21,22 @@ class Patient(Base):
     info: A string containing patient information.
     chunks: A relationship that links to the DataChunk instances associated with a patient.
     """
-    __tablename__ = 'patients'
+
+    __tablename__ = "patients"
 
     id = Column(Integer, primary_key=True)
     info = Column(String)
 
-    chunks = relationship('DataChunk', back_populates='patient', cascade='all, delete, delete-orphan')
-    samples = relationship('DataChunk', back_populates='patient', cascade='all, delete, delete-orphan')
-    seizures = relationship('DataChunk', back_populates='patient', cascade='all, delete, delete-orphan')
+    dataset = relationship("Dataset", back_populates="patients")
+    chunks = relationship(
+        "DataChunk", back_populates="patient", cascade="all, delete, delete-orphan"
+    )
+    samples = relationship(
+        "Sample", back_populates="patient", cascade="all, delete, delete-orphan"
+    )
+    seizures = relationship(
+        "Seizure", back_populates="patient", cascade="all, delete, delete-orphan"
+    )
 
 
 class Dataset(Base):
@@ -40,12 +48,15 @@ class Dataset(Base):
     name: A string representing the dataset name (such as 'inv', 'inv2', or 'surf30').
     chunks: A relationship that links to the DataChunk instances associated with a dataset.
     """
-    __tablename__ = 'datasets'
+
+    __tablename__ = "datasets"
 
     id = Column(Integer, primary_key=True)
     name = Column(String)
 
-    chunks = relationship('DataChunk', back_populates='dataset', cascade='all, delete, delete-orphan')
+    patients = relationship(
+        "Patient", back_populates="dataset", cascade="all, delete, delete-orphan"
+    )
 
 
 class SeizureState(Base):
@@ -57,12 +68,15 @@ class SeizureState(Base):
     state: A string representing the seizure state (such as 'pre-seiz', 'non-seiz', or 'seizure').
     chunks: A relationship that links to the DataChunk instances associated with a seizure state.
     """
-    __tablename__ = 'seizure_states'
+
+    __tablename__ = "seizure_states"
 
     id = Column(Integer, primary_key=True)
     state = Column(String)
 
-    chunks = relationship('DataChunk', back_populates='state', cascade='all, delete, delete-orphan')
+    chunks = relationship(
+        "DataChunk", back_populates="state", cascade="all, delete, delete-orphan"
+    )
 
 
 class DataChunk(Base):
@@ -79,14 +93,15 @@ class DataChunk(Base):
     dataset: A relationship that links to the Dataset instance associated with a data chunk.
     state: A relationship that links to the SeizureState instance associated with a data chunk.
     """
-    __tablename__ = 'data_chunks'
+
+    __tablename__ = "data_chunks"
 
     id = Column(Integer, primary_key=True)
-    patient_id = Column(Integer, ForeignKey('patients.id'))
-    dataset_id = Column(Integer, ForeignKey('datasets.id'))
-    state_id = Column(Integer, ForeignKey('seizure_states.id'))
+    patient_id = Column(Integer, ForeignKey("patients.id"))
+    dataset_id = Column(Integer, ForeignKey("datasets.id"))
+    state_id = Column(Integer, ForeignKey("seizure_states.id"))
     data = Column(BYTEA)
 
-    patient = relationship('Patient', back_populates='chunks')
-    dataset = relationship('Dataset', back_populates='chunks')
-    state = relationship('SeizureState', back_populates='chunks')
+    patient = relationship("Patient", back_populates="chunks")
+    dataset = relationship("Dataset", back_populates="chunks")
+    state = relationship("SeizureState", back_populates="chunks")
