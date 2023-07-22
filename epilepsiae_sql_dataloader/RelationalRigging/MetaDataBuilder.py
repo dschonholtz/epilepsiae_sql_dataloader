@@ -6,7 +6,6 @@ import glob
 import numpy as np
 import pandas as pd
 from sqlalchemy import create_engine
-from sqlalchemy.orm import declarative_base
 import csv
 from pathlib import Path
 from datetime import datetime
@@ -18,6 +17,7 @@ from epilepsiae_sql_dataloader.utils import ENGINE_STR, session_scope
 from epilepsiae_sql_dataloader.models.Sample import Sample
 from epilepsiae_sql_dataloader.models.LoaderTables import Patient, Dataset
 from epilepsiae_sql_dataloader.models.Seizures import Seizure
+from epilepsiae_sql_dataloader.models.Base import Base
 
 import sys
 import click
@@ -267,7 +267,8 @@ def main(directories, engine_str, drop_tables):
     """Console script for epilepsiae_sql_dataloader."""
     if drop_tables:
         engine = create_engine(engine_str)
-        declarative_base().metadata.drop_all(engine)
+        Base.metadata.drop_all(engine)
+        Base.metadata.create_all(engine)
 
     loader = MetaDataBuilder(engine_str)
     paths = []
