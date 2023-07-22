@@ -16,7 +16,7 @@ from pandas import to_datetime
 
 from epilepsiae_sql_dataloader.utils import ENGINE_STR, session_scope
 from epilepsiae_sql_dataloader.models.Sample import Sample
-from epilepsiae_sql_dataloader.models.LoaderTables import Patient
+from epilepsiae_sql_dataloader.models.LoaderTables import Patient, Dataset
 from epilepsiae_sql_dataloader.models.Seizures import Seizure
 
 import sys
@@ -86,7 +86,7 @@ class MetaDataBuilder(object):
         # Convert the DataFrame to a numpy array and return
         return data.values
 
-    def load_seizure_data_to_db(self, data, pat_id: int):
+    def load_seizure_data_to_db(self, data, patient: Patient):
         """
         Load the seizure data into the database.
         Data has been cast to a numpy array [datetime, datetime, int, int]
@@ -98,13 +98,12 @@ class MetaDataBuilder(object):
                 onset_sample = row[2]
                 offset_sample = row[3]
                 seizure = Seizure(
-                    pat_id=int(pat_id),
                     onset=onset,
                     offset=offset,
                     onset_sample=int(onset_sample),
                     offset_sample=int(offset_sample),
                 )
-                session.add(seizure)
+                patient.seizures.append(seizure)
 
     def read_sample_data(self, fp: Path):
         """
@@ -206,7 +205,7 @@ class MetaDataBuilder(object):
                 for head_file in head_files:
                     yield head_file
 
-    def load_sample_dir_to_db(self, directory: Path):
+    def load_sample_dir_to_db(self, directory: Path, patient: Patient):
         """
         Load the sample data into the database.
         """
@@ -217,19 +216,27 @@ class MetaDataBuilder(object):
                 data["data_file"] = str(head_file.with_suffix(".data"))
                 with session_scope(self.engine_str) as session:
                     sample = Sample(**data)
-                    session.add(sample)
+                    patient.samples.append(sample)
             except Exception as e:
                 print(f"Error processing file {head_file}: {e}")
 
-    def load_data_in_pat_dir(self, directory):
+    def create_patient(self, pat_id: int, dataset: Dataset):
+        with session_scope(self.engine_str) as session:
+            patient = Patient(id=pat_id)
+            session.add(patient)
+            dataset.patients.append(patient)
+        return patient
+
+    def load_data_in_pat_dir(self, directory, dataset: Dataset):
         print(directory)
         directory_path = Path(directory)
         pat_id = directory.split("/")[-1]
         data = self.read_seizure_data(directory_path / "seizure_list")
-        self.load_seizure_data_to_db(data, pat_id.split("_")[1])
-        self.load_sample_dir_to_db(directory_path)
+        patient = self.create_patient(pat_id.split("_")[1], dataset)
+        self.load_seizure_data_to_db(data, pat_id.split("_")[1], patient)
+        self.load_sample_dir_to_db(directory_path, patient)
 
-    def load_data(self, paths):
+    def load_data(self, paths, dataset: Dataset):
         """
         Each has a pat dir of the format pat_#####
         In each pat we have a seizurelist
@@ -237,7 +244,14 @@ class MetaDataBuilder(object):
         """
         for path in paths:
             for directory in glob.glob(path):
-                self.load_data_in_pat_dir(directory)
+                self.load_data_in_pat_dir(directory, dataset)
+
+
+def create_dataset(name, engine_str):
+    with session_scope(engine_str) as session:
+        dataset = Dataset(name=name)
+        session.add(dataset)
+    return dataset
 
 
 @click.command()
@@ -260,12 +274,18 @@ def main(directories, engine_str, drop_tables):
     for dir in directories:
         # If the dir ends in inv create the inv dataset if it doesn't already exist
         # if the dir ends in surf30 create the surf dataset if it doesn't already exist
+        if dir.endswith("inv"):
+            dataset = create_dataset("inv", engine_str)
+        elif dir.endswith("surf30"):
+            dataset = create_dataset("surf", engine_str)
+        else:
+            raise ValueError("Unknown dataset")
         paths.extend(
             [
                 f"{dir}/pat_*",
             ]
         )
-    loader.load_data(paths)
+    loader.load_data(paths, dataset)
 
     return 0
 
