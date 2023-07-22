@@ -163,7 +163,7 @@ class MetaDataBuilder(object):
                     value = [",".join(value[1:-1].split(","))]
                 elif key == "start_ts":
                     try:
-                        value = [to_datetime(value)]
+                        value = to_datetime(value)
                     except ValueError:
                         if key in mandatory_fields:
                             return DataFrame()  # Bad format for a mandatory field
