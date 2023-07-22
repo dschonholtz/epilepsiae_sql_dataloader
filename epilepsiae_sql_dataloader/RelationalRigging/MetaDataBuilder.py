@@ -288,9 +288,9 @@ def main(directories, engine_str, drop_tables):
         # If the dir ends in inv create the inv dataset if it doesn't already exist
         # if the dir ends in surf30 create the surf dataset if it doesn't already exist
         if dir.endswith("inv"):
-            dataset_id = create_dataset("inv", engine_str)
+            dataset_id = loader.create_dataset("inv")
         elif dir.endswith("surf30"):
-            dataset_id = create_dataset("surf", engine_str)
+            dataset_id = loader.create_dataset("surf")
         else:
             raise ValueError("Unknown dataset")
         paths.extend(
