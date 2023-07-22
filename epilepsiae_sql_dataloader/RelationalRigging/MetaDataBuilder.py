@@ -205,24 +205,23 @@ class MetaDataBuilder(object):
                 for head_file in head_files:
                     yield head_file
 
-    def load_sample_dir_to_db(self, directory: Path, patient: Patient):
+    def load_sample_dir_to_db(self, directory: Path, patient_id: int):
         """
         Load the sample data into the database.
         """
-        for head_file in self.file_generator(directory):
-            try:
-                data = self.read_sample_data(head_file)
-                print(data)
-                data["data_file"] = str(head_file.with_suffix(".data"))
-                with session_scope(self.engine_str) as session:
-                    # Query for the patient passed to the method with teh session
-                    patient = (
-                        session.query(Patient).filter(Patient.id == patient.id).first()
-                    )
+        with session_scope(self.engine_str) as session:
+            # Query for the patient passed to the method with the session
+            patient = session.query(Patient).filter(Patient.id == patient_id).first()
+
+            for head_file in self.file_generator(directory):
+                try:
+                    data = self.read_sample_data(head_file)
+                    print(data)
+                    data["data_file"] = str(head_file.with_suffix(".data"))
                     sample = Sample(**data)
                     patient.samples.append(sample)
-            except Exception as e:
-                print(f"Error processing file {head_file}: {e}")
+                except Exception as e:
+                    print(f"Error processing file {head_file}: {e}")
 
     def create_patient(self, pat_id: int, dataset_id: int):
         with session_scope(self.engine_str) as session:
