@@ -147,7 +147,6 @@ class MetaDataBuilder(object):
             "num_samples",
             "sample_freq",
             "num_channels",
-            "pat_id",
             "adm_id",
             "rec_id",
             "duration_in_sec",
@@ -168,6 +167,8 @@ class MetaDataBuilder(object):
                     except ValueError:
                         if key in mandatory_fields:
                             return DataFrame()  # Bad format for a mandatory field
+                elif key == "pat_id":
+                    continue
                 elif key in mandatory_fields:
                     try:
                         value = [int(value)]
