@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, DateTime, ForeignKey
 from sqlalchemy.orm import declarative_base, relationship
+from epilepsiae_sql_dataloader.models.Base import Base
 
 """
 Example seizure file
@@ -18,7 +19,7 @@ Example seizure file
 """
 
 
-class Seizure(declarative_base()):
+class Seizure(Base):
     __tablename__ = "seizures"
 
     id = Column(Integer, primary_key=True)

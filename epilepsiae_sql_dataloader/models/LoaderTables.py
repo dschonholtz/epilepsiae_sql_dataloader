@@ -7,36 +7,8 @@ from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import BYTEA
-
-Base = declarative_base()
-
-
-class Patient(Base):
-    """
-    Patient class corresponds to the 'patients' table in the database.
-    It is assumed that ID will always be set to the patient's ID in the database.
-
-    Attributes:
-    id: An integer that serves as the primary key.
-    info: A string containing patient information.
-    chunks: A relationship that links to the DataChunk instances associated with a patient.
-    """
-
-    __tablename__ = "patients"
-
-    id = Column(Integer, primary_key=True)
-    info = Column(String)
-
-    dataset = relationship("Dataset", back_populates="patients")
-    chunks = relationship(
-        "DataChunk", back_populates="patient", cascade="all, delete, delete-orphan"
-    )
-    samples = relationship(
-        "Sample", back_populates="patient", cascade="all, delete, delete-orphan"
-    )
-    seizures = relationship(
-        "Seizure", back_populates="patient", cascade="all, delete, delete-orphan"
-    )
+from epilepsiae_sql_dataloader.models.Seizures import Seizure
+from epilepsiae_sql_dataloader.models.Base import Base
 
 
 class Dataset(Base):
@@ -59,23 +31,31 @@ class Dataset(Base):
     )
 
 
-class SeizureState(Base):
+class Patient(Base):
     """
-    SeizureState class corresponds to the 'seizure_states' table in the database.
+    Patient class corresponds to the 'patients' table in the database.
+    It is assumed that ID will always be set to the patient's ID in the database.
 
     Attributes:
     id: An integer that serves as the primary key.
-    state: A string representing the seizure state (such as 'pre-seiz', 'non-seiz', or 'seizure').
-    chunks: A relationship that links to the DataChunk instances associated with a seizure state.
+    info: A string containing patient information.
+    chunks: A relationship that links to the DataChunk instances associated with a patient.
     """
 
-    __tablename__ = "seizure_states"
+    __tablename__ = "patients"
 
     id = Column(Integer, primary_key=True)
-    state = Column(String)
+    dataset_id = Column(Integer, ForeignKey("datasets.id"))
 
+    dataset = relationship("Dataset", back_populates="patients")
     chunks = relationship(
-        "DataChunk", back_populates="state", cascade="all, delete, delete-orphan"
+        "DataChunk", back_populates="patient", cascade="all, delete, delete-orphan"
+    )
+    samples = relationship(
+        "Sample", back_populates="patient", cascade="all, delete, delete-orphan"
+    )
+    seizures = relationship(
+        "Seizure", back_populates="patient", cascade="all, delete, delete-orphan"
     )
 
 
@@ -87,7 +67,7 @@ class DataChunk(Base):
     id: An integer that serves as the primary key.
     patient_id: An integer that serves as the foreign key linking to the 'patients' table.
     dataset_id: An integer that serves as the foreign key linking to the 'datasets' table.
-    state_id: An integer that serves as the foreign key linking to the 'seizure_states' table.
+    state_id: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure
     data: A binary type holding 256 uint16 values. Or 1 second of downsampled data. 512 Bytes as 256 uint16 values.
     patient: A relationship that links to the Patient instance associated with a data chunk.
     dataset: A relationship that links to the Dataset instance associated with a data chunk.
@@ -98,10 +78,7 @@ class DataChunk(Base):
 
     id = Column(Integer, primary_key=True)
     patient_id = Column(Integer, ForeignKey("patients.id"))
-    dataset_id = Column(Integer, ForeignKey("datasets.id"))
-    state_id = Column(Integer, ForeignKey("seizure_states.id"))
+    seizure_state = Column(Integer)
     data = Column(BYTEA)
 
-    patient = relationship("Patient", back_populates="chunks")
-    dataset = relationship("Dataset", back_populates="chunks")
-    state = relationship("SeizureState", back_populates="chunks")
+    patient = relationship(Patient, back_populates="chunks")

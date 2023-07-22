@@ -16,6 +16,7 @@ from pandas import to_datetime
 
 from epilepsiae_sql_dataloader.utils import ENGINE_STR, session_scope
 from epilepsiae_sql_dataloader.models.Sample import Sample
+from epilepsiae_sql_dataloader.models.LoaderTables import Patient
 from epilepsiae_sql_dataloader.models.Seizures import Seizure
 
 import sys

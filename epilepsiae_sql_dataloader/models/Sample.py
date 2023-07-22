@@ -1,5 +1,7 @@
-from sqlalchemy.orm import declarative_base, relationship
+from sqlalchemy.orm import relationship
 from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from epilepsiae_sql_dataloader.models.LoaderTables import Patient
+from epilepsiae_sql_dataloader.models.Base import Base
 
 
 """
@@ -18,7 +20,14 @@ sample_bytes=2
 """
 
 
-class Sample(declarative_base()):
+import datetime
+from sqlalchemy.orm import relationship
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from epilepsiae_sql_dataloader.models.LoaderTables import Patient
+from epilepsiae_sql_dataloader.models.Base import Base
+
+
+class Sample(Base):
     __tablename__ = "samples"
 
     id = Column(Integer, primary_key=True)
@@ -36,6 +45,77 @@ class Sample(declarative_base()):
     data_file = Column(String, nullable=False)
 
     patient = relationship("Patient", back_populates="samples")
+
+    def __init__(
+        self,
+        start_ts,
+        num_samples,
+        sample_freq,
+        conversion_factor,
+        num_channels,
+        elec_names,
+        adm_id,
+        rec_id,
+        duration_in_sec,
+        sample_bytes,
+        data_file,
+    ):
+        # Type verification for start_ts
+        if not isinstance(start_ts, datetime.datetime):
+            raise TypeError("start_ts must be a datetime.datetime object.")
+
+        # Type verification for num_samples
+        if not isinstance(num_samples, int):
+            raise TypeError("num_samples must be an integer.")
+
+        # Type verification for sample_freq
+        if not isinstance(sample_freq, int):
+            raise TypeError("sample_freq must be an integer.")
+
+        # Type verification for conversion_factor
+        if not isinstance(conversion_factor, float):
+            raise TypeError("conversion_factor must be a float.")
+
+        # Type verification for num_channels
+        if not isinstance(num_channels, int):
+            raise TypeError("num_channels must be an integer.")
+
+        # Type verification for elec_names
+        if not isinstance(elec_names, str):
+            raise TypeError("elec_names must be a string.")
+
+        # Type verification for adm_id
+        if not isinstance(adm_id, int):
+            raise TypeError("adm_id must be an integer.")
+
+        # Type verification for rec_id
+        if not isinstance(rec_id, int):
+            raise TypeError("rec_id must be an integer.")
+
+        # Type verification for duration_in_sec
+        if not isinstance(duration_in_sec, int):
+            raise TypeError("duration_in_sec must be an integer.")
+
+        # Type verification for sample_bytes
+        if not isinstance(sample_bytes, int):
+            raise TypeError("sample_bytes must be an integer.")
+
+        # Type verification for data_file
+        if not isinstance(data_file, str):
+            raise TypeError("data_file must be a string.")
+
+        # If all types are correct, assign the attributes
+        self.start_ts = start_ts
+        self.num_samples = num_samples
+        self.sample_freq = sample_freq
+        self.conversion_factor = conversion_factor
+        self.num_channels = num_channels
+        self.elec_names = elec_names
+        self.adm_id = adm_id
+        self.rec_id = rec_id
+        self.duration_in_sec = duration_in_sec
+        self.sample_bytes = sample_bytes
+        self.data_file = data_file
 
     def __repr__(self):
         return (

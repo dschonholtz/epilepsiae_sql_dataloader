@@ -49,4 +49,5 @@ def scp_to_server(sub_dir):
 if __name__ == "__main__":
     # call the function with 'surf_30' or 'inv_30'
     # scp_to_server("surf_30")
-    scp_to_server("inv_30")
+    # scp_to_server("inv_30")
+    scp_to_server("PA_inv")
