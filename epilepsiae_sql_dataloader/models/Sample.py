@@ -62,7 +62,12 @@ class Sample(Base):
     ):
         # Type verification for start_ts
         if not isinstance(start_ts, datetime.datetime):
-            raise TypeError("start_ts must be a datetime.datetime object.")
+            raise TypeError(
+                "start_ts must be a datetime.datetime object. but is of type: "
+                + str(type(start_ts))
+                + " with value: "
+                + str(start_ts)
+            )
 
         # Type verification for num_samples
         if not isinstance(num_samples, int):
