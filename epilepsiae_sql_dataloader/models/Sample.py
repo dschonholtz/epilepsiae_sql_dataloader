@@ -22,7 +22,7 @@ sample_bytes=2
 
 import datetime
 from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, BigInteger
 from epilepsiae_sql_dataloader.models.LoaderTables import Patient
 from epilepsiae_sql_dataloader.models.Base import Base
 
@@ -39,7 +39,7 @@ class Sample(Base):
     elec_names = Column(String, nullable=False)
     pat_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
     adm_id = Column(Integer, nullable=False)
-    rec_id = Column(Integer, nullable=False)
+    rec_id = Column(BigInteger, nullable=False)
     duration_in_sec = Column(Integer, nullable=False)
     sample_bytes = Column(Integer, nullable=False)
     data_file = Column(String, nullable=False)
