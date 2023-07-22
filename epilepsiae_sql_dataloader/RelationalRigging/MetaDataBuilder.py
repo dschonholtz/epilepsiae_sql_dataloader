@@ -215,6 +215,10 @@ class MetaDataBuilder(object):
                 print(data)
                 data["data_file"] = str(head_file.with_suffix(".data"))
                 with session_scope(self.engine_str) as session:
+                    # Query for the patient passed to the method with teh session
+                    patient = (
+                        session.query(Patient).filter(Patient.id == patient.id).first()
+                    )
                     sample = Sample(**data)
                     patient.samples.append(sample)
             except Exception as e:
@@ -222,6 +226,7 @@ class MetaDataBuilder(object):
 
     def create_patient(self, pat_id: int, dataset: Dataset):
         with session_scope(self.engine_str) as session:
+            dataset = session.query(Dataset).filter(Dataset.id == dataset.id).first()
             patient = Patient(id=pat_id)
             session.add(patient)
             dataset.patients.append(patient)
