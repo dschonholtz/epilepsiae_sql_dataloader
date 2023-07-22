@@ -218,7 +218,7 @@ class MetaDataBuilder(object):
 
             for head_file in self.file_generator(directory):
                 try:
-                    data = self.read_sample_data(head_file)
+                    data = self.read_sample_data(head_file).to_dict()
                     print(data)
                     data["data_file"] = str(head_file.with_suffix(".data"))
                     sample = Sample(**data)
