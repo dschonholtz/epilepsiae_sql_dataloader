@@ -163,7 +163,7 @@ class MetaDataBuilder(object):
                     value = [",".join(value[1:-1].split(","))]
                 elif key == "start_ts":
                     try:
-                        value = [to_datetime(value)]
+                        value = to_datetime(value)
                     except ValueError:
                         if key in mandatory_fields:
                             return DataFrame()  # Bad format for a mandatory field
@@ -171,18 +171,18 @@ class MetaDataBuilder(object):
                     continue
                 elif key in mandatory_fields:
                     try:
-                        value = [int(value)]
+                        value = int(value)
                     except ValueError:
                         return DataFrame()  # Bad format for a mandatory field
                 elif key == "conversion_factor":
                     try:
-                        value = [float(value)]
+                        value = float(value)
                     except ValueError:
                         # Bad format for conversion_factor, but it's not mandatory
                         data[key] = None
                 elif key == "sample_bytes":
                     try:
-                        value = [int(value)]
+                        value = int(value)
                     except ValueError:
                         # Bad format for sample_bytes, but it's not mandatory
                         data[key] = None
