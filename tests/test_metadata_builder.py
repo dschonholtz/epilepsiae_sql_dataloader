@@ -4,10 +4,13 @@ import pytest
 from epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder import MetaDataBuilder
 from epilepsiae_sql_dataloader.utils import session_scope
 from epilepsiae_sql_dataloader.models.Sample import Sample
+from epilepsiae_sql_dataloader.models.Base import Base
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
 from pandas import DataFrame
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy import create_engine
 
 # Import the test data which is one in a same level dir called test_data/seizure_data_with_comments.txt
 seizure_list_base = Path(__file__).parent / "test_data" / "seizurelists"
@@ -151,3 +154,59 @@ class TestFileGenerator:
         builder = MetaDataBuilder(ENGINE_STR)
         directory = Path("tests/test_data/seizurelists")
         assert len(list(builder.file_generator(directory))) == 0
+
+
+@pytest.fixture(scope="function", autouse=True)
+def clean_database():
+    # setup
+    engine = create_engine(ENGINE_STR)
+    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
+
+    yield None
+
+    # teardown
+    engine = create_engine(ENGINE_STR)
+    Base.metadata.drop_all(engine)
+
+
+class TestCreateDataset:
+    # Tests that a dataset can be created with a valid name and engine string
+    def test_create_dataset_valid_name(self, clean_database):
+        builder = MetaDataBuilder(ENGINE_STR)
+        dataset_id = builder.create_dataset("test_dataset")
+        assert isinstance(dataset_id, int)
+
+    # Tests that multiple datasets can be created with different names
+    def test_create_dataset_multiple_datasets(self):
+        builder = MetaDataBuilder(ENGINE_STR)
+        dataset_id1 = builder.create_dataset("test_dataset1")
+        dataset_id2 = builder.create_dataset("test_dataset2")
+        assert isinstance(dataset_id1, int)
+        assert isinstance(dataset_id2, int)
+
+    # Tests that creating a dataset with an empty name raises an error
+    def test_create_dataset_empty_name(self):
+        builder = MetaDataBuilder(ENGINE_STR)
+        with pytest.raises(ValueError):
+            builder.create_dataset("")
+
+    # Tests that creating a dataset with a name that already exists raises an error
+    def test_create_dataset_name_already_exists(self):
+        builder = MetaDataBuilder(ENGINE_STR)
+        builder.create_dataset("test_dataset", ENGINE_STR)
+        with pytest.raises(IntegrityError):
+            builder.create_dataset("test_dataset", ENGINE_STR)
+
+    # Tests that creating a dataset with a name that contains special characters raises an error
+    def test_create_dataset_special_characters(self):
+        builder = MetaDataBuilder(ENGINE_STR)
+        with pytest.raises(ValueError):
+            builder.create_dataset("test_dataset!@#", ENGINE_STR)
+
+    # Tests that creating a dataset with an invalid engine string raises an error
+    def test_create_dataset_invalid_engine_string(self):
+        builder = MetaDataBuilder(ENGINE_STR)
+        engine_str = "invalid_engine_string"
+        with pytest.raises(Exception):
+            builder.create_dataset("test_dataset", ENGINE_STR)

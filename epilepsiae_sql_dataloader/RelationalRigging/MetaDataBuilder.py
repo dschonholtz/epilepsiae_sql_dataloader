@@ -229,8 +229,9 @@ class MetaDataBuilder(object):
             print(f"Dataset query with id: {dataset.id} returned: {dataset}")
             patient = Patient(id=pat_id)
             session.add(patient)
-            patient_id = patient.id
             dataset.patients.append(patient)
+            session.commit()
+            patient_id = patient.id
         return patient_id
 
     def load_data_in_pat_dir(self, directory, dataset_id: int):
@@ -252,18 +253,17 @@ class MetaDataBuilder(object):
             for directory in glob.glob(path):
                 self.load_data_in_pat_dir(directory, dataset_id)
 
+    def create_dataset(self, name) -> int:
+        """
+        Creates a dataset with the given name and returns the id
+        """
+        with session_scope(self.engine_str) as session:
+            dataset = Dataset(name=name)
+            session.add(dataset)
+            session.commit()
+            dataset_id = dataset.id
 
-def create_dataset(name, engine_str) -> int:
-    """
-    Creates a dataset with the given name and returns the id
-    """
-    with session_scope(engine_str) as session:
-        dataset = Dataset(name=name)
-        session.add(dataset)
-        dataset_id = dataset.id
-        print(f"Created dataset {name} with id {dataset_id}")
-
-    return dataset_id
+        return dataset_id
 
 
 @click.command()
