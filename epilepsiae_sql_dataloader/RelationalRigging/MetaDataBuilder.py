@@ -227,6 +227,7 @@ class MetaDataBuilder(object):
     def create_patient(self, pat_id: int, dataset_id: int):
         with session_scope(self.engine_str) as session:
             dataset = session.query(Dataset).filter(Dataset.id == dataset_id).first()
+            print(f"Dataset query with id: {dataset.id} returned: {dataset}")
             patient = Patient(id=pat_id)
             session.add(patient)
             patient_id = patient.id
@@ -254,10 +255,15 @@ class MetaDataBuilder(object):
 
 
 def create_dataset(name, engine_str) -> int:
+    """
+    Creates a dataset with the given name and returns the id
+    """
     with session_scope(engine_str) as session:
         dataset = Dataset(name=name)
         session.add(dataset)
         dataset_id = dataset.id
+        print(f"Created dataset {name} with id {dataset_id}")
+
     return dataset_id
 
 
