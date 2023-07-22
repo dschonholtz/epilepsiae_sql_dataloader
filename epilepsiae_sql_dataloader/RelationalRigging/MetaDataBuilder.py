@@ -86,12 +86,14 @@ class MetaDataBuilder(object):
         # Convert the DataFrame to a numpy array and return
         return data.values
 
-    def load_seizure_data_to_db(self, data, patient: Patient):
+    def load_seizure_data_to_db(self, data, patient_id: int):
         """
         Load the seizure data into the database.
         Data has been cast to a numpy array [datetime, datetime, int, int]
         """
         with session_scope(self.engine_str) as session:
+            # Query for the patient passed to the method with the session
+            patient = session.query(Patient).filter(Patient.id == patient_id).first()
             for row in data:
                 onset = row[0]
                 offset = row[1]
@@ -240,7 +242,7 @@ class MetaDataBuilder(object):
         pat_id = directory.split("/")[-1]
         data = self.read_seizure_data(directory_path / "seizure_list")
         patient_id = self.create_patient(pat_id.split("_")[1], dataset_id)
-        self.load_seizure_data_to_db(data, pat_id.split("_")[1], patient_id)
+        self.load_seizure_data_to_db(data, patient_id)
         self.load_sample_dir_to_db(directory_path, patient_id)
 
     def load_data(self, paths, dataset_id: int):
