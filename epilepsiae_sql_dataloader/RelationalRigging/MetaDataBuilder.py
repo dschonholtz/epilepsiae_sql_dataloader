@@ -224,24 +224,25 @@ class MetaDataBuilder(object):
             except Exception as e:
                 print(f"Error processing file {head_file}: {e}")
 
-    def create_patient(self, pat_id: int, dataset: Dataset):
+    def create_patient(self, pat_id: int, dataset_id: int):
         with session_scope(self.engine_str) as session:
-            dataset = session.query(Dataset).filter(Dataset.id == dataset.id).first()
+            dataset = session.query(Dataset).filter(Dataset.id == dataset_id).first()
             patient = Patient(id=pat_id)
             session.add(patient)
+            patient_id = patient.id
             dataset.patients.append(patient)
-        return patient
+        return patient_id
 
-    def load_data_in_pat_dir(self, directory, dataset: Dataset):
+    def load_data_in_pat_dir(self, directory, dataset_id: int):
         print(directory)
         directory_path = Path(directory)
         pat_id = directory.split("/")[-1]
         data = self.read_seizure_data(directory_path / "seizure_list")
-        patient = self.create_patient(pat_id.split("_")[1], dataset)
-        self.load_seizure_data_to_db(data, pat_id.split("_")[1], patient)
-        self.load_sample_dir_to_db(directory_path, patient)
+        patient_id = self.create_patient(pat_id.split("_")[1], dataset_id)
+        self.load_seizure_data_to_db(data, pat_id.split("_")[1], patient_id)
+        self.load_sample_dir_to_db(directory_path, patient_id)
 
-    def load_data(self, paths, dataset: Dataset):
+    def load_data(self, paths, dataset_id: int):
         """
         Each has a pat dir of the format pat_#####
         In each pat we have a seizurelist
@@ -249,14 +250,15 @@ class MetaDataBuilder(object):
         """
         for path in paths:
             for directory in glob.glob(path):
-                self.load_data_in_pat_dir(directory, dataset)
+                self.load_data_in_pat_dir(directory, dataset_id)
 
 
-def create_dataset(name, engine_str):
+def create_dataset(name, engine_str) -> int:
     with session_scope(engine_str) as session:
         dataset = Dataset(name=name)
         session.add(dataset)
-    return dataset
+        dataset_id = dataset.id
+    return dataset_id
 
 
 @click.command()
@@ -281,9 +283,9 @@ def main(directories, engine_str, drop_tables):
         # If the dir ends in inv create the inv dataset if it doesn't already exist
         # if the dir ends in surf30 create the surf dataset if it doesn't already exist
         if dir.endswith("inv"):
-            dataset = create_dataset("inv", engine_str)
+            dataset_id = create_dataset("inv", engine_str)
         elif dir.endswith("surf30"):
-            dataset = create_dataset("surf", engine_str)
+            dataset_id = create_dataset("surf", engine_str)
         else:
             raise ValueError("Unknown dataset")
         paths.extend(
@@ -291,7 +293,7 @@ def main(directories, engine_str, drop_tables):
                 f"{dir}/pat_*",
             ]
         )
-    loader.load_data(paths, dataset)
+    loader.load_data(paths, dataset_id)
 
     return 0
 
