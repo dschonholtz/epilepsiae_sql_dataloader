@@ -5,6 +5,7 @@ from epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder import MetaData
 from epilepsiae_sql_dataloader.utils import session_scope
 from epilepsiae_sql_dataloader.models.Sample import Sample
 from epilepsiae_sql_dataloader.models.Base import Base
+from tests.utils import ENGINE_STR
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
@@ -21,8 +22,6 @@ seizure_data_missing_values_path = seizure_list_base / "seizure_data_missing_val
 seizure_data_invalid_datetime_path = (
     seizure_list_base / "seizure_data_invalid_datetime.txt"
 )
-
-ENGINE_STR = "postgresql+psycopg2://postgres:postgres@localhost/seizure_db_test"
 
 
 class TestReadSeizureData:

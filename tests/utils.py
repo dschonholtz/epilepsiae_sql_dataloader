@@ -4,6 +4,9 @@ from sqlalchemy.orm import sessionmaker
 from epilepsiae_sql_dataloader.models.LoaderTables import Base
 
 
+ENGINE_STR = "postgresql+psycopg2://postgres:postgres@localhost/seizure_db_test"
+
+
 @pytest.fixture(scope="function")
 def db_session():
     postgres_ip = "172.17.0.2"

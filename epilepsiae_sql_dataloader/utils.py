@@ -31,6 +31,9 @@ from contextlib import contextmanager
 from sqlalchemy.orm import sessionmaker
 
 
+ENGINE_STR = "postgresql+psycopg2://postgres:postgres@localhost/seizure_db_test"
+
+
 @contextmanager
 def session_scope(engine_str):
     """Provide a transactional scope around a series of operations."""

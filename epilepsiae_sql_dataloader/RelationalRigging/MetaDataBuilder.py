@@ -268,6 +268,24 @@ class MetaDataBuilder(object):
 
         return dataset_id
 
+    def start(self, directories):
+        paths = []
+        for dir in directories:
+            # If the dir ends in inv create the inv dataset if it doesn't already exist
+            # if the dir ends in surf30 create the surf dataset if it doesn't already exist
+            if dir.endswith("inv"):
+                dataset_id = self.create_dataset("inv")
+            elif dir.endswith("surf30"):
+                dataset_id = self.create_dataset("surf")
+            else:
+                raise ValueError("Unknown dataset")
+            paths.extend(
+                [
+                    f"{dir}/pat_*",
+                ]
+            )
+        self.load_data(paths, dataset_id)
+
 
 @click.command()
 @click.option(
@@ -286,22 +304,7 @@ def main(directories, engine_str, drop_tables):
         Base.metadata.create_all(engine)
 
     loader = MetaDataBuilder(engine_str)
-    paths = []
-    for dir in directories:
-        # If the dir ends in inv create the inv dataset if it doesn't already exist
-        # if the dir ends in surf30 create the surf dataset if it doesn't already exist
-        if dir.endswith("inv"):
-            dataset_id = loader.create_dataset("inv")
-        elif dir.endswith("surf30"):
-            dataset_id = loader.create_dataset("surf")
-        else:
-            raise ValueError("Unknown dataset")
-        paths.extend(
-            [
-                f"{dir}/pat_*",
-            ]
-        )
-    loader.load_data(paths, dataset_id)
+    loader.start(directories)
 
     return 0
 

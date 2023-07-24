@@ -17,6 +17,8 @@ requirements = [
     "numpy",
     "pandas",
     "selenium",
+    "scipy",
+    "scikit-learn",
 ]
 
 test_requirements = [

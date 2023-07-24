@@ -67,7 +67,7 @@ class DataChunk(Base):
     id: An integer that serves as the primary key.
     patient_id: An integer that serves as the foreign key linking to the 'patients' table.
     dataset_id: An integer that serves as the foreign key linking to the 'datasets' table.
-    state_id: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure
+    seizure_state: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure
     data: A binary type holding 256 uint16 values. Or 1 second of downsampled data. 512 Bytes as 256 uint16 values.
     patient: A relationship that links to the Patient instance associated with a data chunk.
     dataset: A relationship that links to the Dataset instance associated with a data chunk.
