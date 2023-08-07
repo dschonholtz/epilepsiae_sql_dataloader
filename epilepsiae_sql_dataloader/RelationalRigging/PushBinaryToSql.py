@@ -4,92 +4,6 @@ dataset into a SQL database.
 It is pointed at a database that has already been configured with the tables from 
 epilepsiae_sql_dataloader/models/LoaderTables.py and the MetaDataBuilder class also in RelationshalRigging
 
-Samples are already defined:
-class Sample(Base):
-    __tablename__ = "samples"
-
-    id = Column(Integer, primary_key=True)
-    start_ts = Column(DateTime, nullable=False)
-    num_samples = Column(Integer, nullable=False)
-    sample_freq = Column(Integer, nullable=False)
-    conversion_factor = Column(Float, nullable=False)
-    num_channels = Column(Integer, nullable=False)
-    elec_names = Column(String, nullable=False)
-    pat_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
-    adm_id = Column(Integer, nullable=False)
-    rec_id = Column(BigInteger, nullable=False)
-    duration_in_sec = Column(Integer, nullable=False)
-    sample_bytes = Column(Integer, nullable=False)
-    data_file = Column(String, nullable=False)
-
-    patient = relationship("Patient", back_populates="samples")
-
-Seizures are already defined:
-class Seizure(Base):
-    __tablename__ = "seizures"
-
-    id = Column(Integer, primary_key=True)
-    pat_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
-    onset = Column(DateTime, nullable=False)
-    offset = Column(DateTime, nullable=False)
-    onset_sample = Column(Integer, nullable=False)
-    offset_sample = Column(Integer, nullable=False)
-
-    patient = relationship("Patient", back_populates="seizures")
-
-Patients and datasets are also already defined:
-class Patient(Base):
-    __tablename__ = "patients"
-
-    id = Column(Integer, primary_key=True)
-    dataset_id = Column(Integer, ForeignKey("datasets.id"))
-
-    dataset = relationship("Dataset", back_populates="patients")
-    chunks = relationship(
-        "DataChunk", back_populates="patient", cascade="all, delete, delete-orphan"
-    )
-    samples = relationship(
-        "Sample", back_populates="patient", cascade="all, delete, delete-orphan"
-    )
-    seizures = relationship(
-        "Seizure", back_populates="patient", cascade="all, delete, delete-orphan"
-    )
-
-class Dataset(Base):
-    __tablename__ = "datasets"
-
-    id = Column(Integer, primary_key=True)
-    name = Column(String)
-
-    patients = relationship(
-        "Patient", back_populates="dataset", cascade="all, delete, delete-orphan"
-    )
-
-The only thing this class adds is DataChunks:
-class DataChunk(Base):
-```
-    DataChunk class corresponds to the 'data_chunks' table in the database.
-
-    Attributes:
-    id: An integer that serves as the primary key.
-    patient_id: An integer that serves as the foreign key linking to the 'patients' table.
-    dataset_id: An integer that serves as the foreign key linking to the 'datasets' table.
-    state_id: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure
-    data: A binary type holding 256 uint16 values. Or 1 second of downsampled data. 512 Bytes as 256 uint16 values.
-    patient: A relationship that links to the Patient instance associated with a data chunk.
-    dataset: A relationship that links to the Dataset instance associated with a data chunk.
-    state: A relationship that links to the SeizureState instance associated with a data chunk.
-    ```
-
-    __tablename__ = "data_chunks"
-
-    id = Column(Integer, primary_key=True)
-    patient_id = Column(Integer, ForeignKey("patients.id"))
-    seizure_state = Column(Integer)
-    data = Column(BYTEA)
-
-    patient = relationship(Patient, back_populates="chunks")
-
 The way this file accomplishes that.
 Is by reading in an entire binary blob, finding the corresponding sample and seizure information
 Noting the exact sample now and after downsamping, downsampling, then breaking the data into 1 second chunks, then applying the seizure state
@@ -101,6 +15,8 @@ from epilepsiae_sql_dataloader.models.LoaderTables import (
     Patient,
     Dataset,
     DataChunk,
+    object_as_dict,
+    dict_with_attrs,
 )
 
 from epilepsiae_sql_dataloader.models.Sample import Sample
@@ -109,6 +25,7 @@ import numpy as np
 from scipy.signal import decimate
 from sklearn.preprocessing import normalize
 from datetime import timedelta
+from typing import List
 
 
 class BinaryToSql:
@@ -129,12 +46,14 @@ class BinaryToSql:
         list[Seizure]: A list of all Seizure instances in the database.
         """
         with session_scope(self.engine_str) as session:
-            return (
+            results = (
                 session.query(Seizure)
                 .where(Seizure.pat_id == pat_id)
                 .order_by(Seizure.onset)
                 .all()
             )
+            results = [dict_with_attrs(object_as_dict(seizure)) for seizure in results]
+        return results
 
     def get_patient_samples(self, pat_id):
         """
@@ -145,15 +64,22 @@ class BinaryToSql:
         list[Sample]: A list of all Sample instances in the database.
         """
         with session_scope(self.engine_str) as session:
-            return (
+            results = (
                 session.query(Sample)
                 .where(Sample.pat_id == pat_id)
                 .order_by(Sample.start_ts)
                 .all()
             )
+            results = [dict_with_attrs(object_as_dict(sample)) for sample in results]
+        return results
 
-    def load_binary(self, fp, dtype=np.uint16):
+    def load_binary(self, fp, num_channels, dtype=np.uint16):
+        """
+        Loads the binary data from the given file pointer.
+        It is assumed that the binary data is stored as a 2D array of uint16 values of size -1, num_channels
+        """
         binary = np.fromfile(fp, dtype=dtype)
+        binary = binary.reshape(-1, num_channels)
         return binary
 
     def preprocess_binary(self, binary, sample_freq, new_sample_freq):
@@ -166,40 +92,164 @@ class BinaryToSql:
         x = normalize(x, norm="l2", axis=1, copy=True, return_norm=False)
         return x
 
-    def get_dataset_id(self, dataset_name):
+    def get_dataset_id(self, patient_id):
         """
         Retrieves the ID for the given dataset name.
-
-        Args:
-        dataset_name (str): The name of the dataset.
 
         Returns:
         int: The ID of the dataset.
         """
         with session_scope(self.engine_str) as session:
-            dataset = session.query(Dataset).filter(Dataset.name == dataset_name).one()
-            return dataset.id
+            # Get the dataset name from the patient information:
+            patient = session.query(Patient).filter(Patient.id == patient_id).one()
+            dataset_id = patient.dataset.id
+            return dataset_id
 
-    def break_into_chunks(self, data, sample_freq):
-        """
-        Breaks the given data into one-second chunks based on the sample frequency.
+    def old_break_into_chunks(
+        self,
+        session,
+        data: np.ndarray,
+        sample: Sample,
+        seizures: List[Seizure],
+        sample_length: int = 1,
+    ) -> List[DataChunk]:
+        # Query the database to get the dataset associated with the patient
+        dataset_id = self.get_dataset_id(sample.pat_id)
 
-        Args:
-        data (list[int]): The data to be broken into chunks.
-        sample_freq (int): The sample frequency, i.e., the number of data points per second.
+        dataset = session.query(Dataset).filter(Dataset.id == dataset_id).one()
+        dataset = dict_with_attrs(object_as_dict(dataset))
 
-        Returns:
-        list[list[int]]: The data broken into one-second chunks.
-        """
-        # Determine the number of chunks
-        num_chunks = len(data) // sample_freq
+        chunks = []
+        num_samples, num_channels = data.shape
+        num_chunks = num_samples // sample_length
+        sample_elect_names = Sample.elect_names_to_list(elect_names=sample.elec_names)
 
-        # Break the data into chunks
-        chunks = [
-            data[i * sample_freq : (i + 1) * sample_freq] for i in range(num_chunks)
-        ]
+        # Go through the data chunk by chunk
+        for i in range(num_chunks):
+            chunk_start_ts = sample.start_ts + timedelta(seconds=i * sample_length)
+            chunk_end_ts = chunk_start_ts + timedelta(seconds=sample_length)
+            seizure_state = self.get_seizure_state(
+                seizures, chunk_start_ts, chunk_end_ts
+            )
+            chunk_data = data[i * sample_length : (i + 1) * sample_length, :]
+
+            # Separate the chunk into its component channels
+            for j in range(num_channels):
+                channel_data = chunk_data[:, j]
+
+                # Create a new DataChunk instance
+                chunk = DataChunk(
+                    data=bytes(channel_data.astype(np.uint16).tobytes()),
+                    seizure_state=seizure_state,
+                    data_type=0,
+                    patient_id=sample.pat_id,
+                )
+                chunk = self.process_data_types(
+                    chunk, sample_elect_names[j], dataset.name
+                )
+
+                chunks.append(chunk)
 
         return chunks
+
+    def break_into_chunks(
+        self,
+        session,
+        data: np.ndarray,
+        sample: Sample,
+        seizures: List[Seizure],
+        freq,
+        sample_length: int = 1,
+    ) -> List[DataChunk]:
+        # Query the database to get the dataset associated with the patient
+        dataset_id = self.get_dataset_id(sample.pat_id)
+        dataset = session.query(Dataset).filter(Dataset.id == dataset_id).one()
+        dataset_name = dataset.name
+
+        data_chunks = []
+        num_samples, num_channels = data.shape
+        num_chunks = num_samples // (sample_length * freq)
+
+        # Extract the electrode names for the sample (outside the loop)
+        elect_names = Sample.elect_names_to_list(elect_names=sample.elec_names)
+
+        # Go through the data chunk by chunk
+        for i in range(num_chunks):
+            if i % 5000 == 0:
+                print(f"Processing chunk {i} of {num_chunks}")
+            chunk_start_ts = sample.start_ts + timedelta(seconds=i * sample_length)
+            chunk_end_ts = chunk_start_ts + timedelta(seconds=sample_length)
+            seizure_state = self.get_seizure_state(
+                seizures, chunk_start_ts, chunk_end_ts
+            )
+            chunk_data = data[
+                i * sample_length * freq : (i + 1) * sample_length * freq, :
+            ]
+
+            # Convert the entire chunk data to bytes
+            chunk_data_bytes = chunk_data.astype(np.uint16).tobytes()
+
+            # Separate the chunk into its component channels
+            for j in range(num_channels):
+                channel_data_bytes = chunk_data_bytes[
+                    j * sample_length * freq * 2 : (j + 1) * sample_length * freq * 2
+                ]
+
+                # Create a DataChunk mapping (without instantiating an object)
+                chunk_mapping = {
+                    "data": channel_data_bytes,
+                    "seizure_state": seizure_state,
+                    "data_type": self.process_data_types(elect_names[j], dataset_name),
+                    "patient_id": sample.pat_id,
+                }
+
+                data_chunks.append(chunk_mapping)
+
+        # Use bulk insert to add all DataChunk mappings to the database
+        session.bulk_insert_mappings(DataChunk, data_chunks)
+        session.commit()
+
+        return data_chunks
+
+    def process_data_types(
+        self,
+        electrode: str,
+        dataset_name: str,
+    ) -> int:
+        # Assign data types based on the dataset and electrode name
+        if dataset_name == "inv":
+            if electrode in {"ECG", "EKG"}:
+                data_type = 1 if electrode == "ECG" else 2
+            elif electrode in {
+                "N",
+                "FP",
+                "AF",
+                "F",
+                "FT",
+                "FC",
+                "A",
+                "T",
+                "C",
+                "TP",
+                "CP",
+                "P",
+                "PO",
+                "O",
+                "I",
+                "EMG",
+                "EOG",
+                "PHO",
+            }:
+                data_type = 3
+            else:
+                data_type = 0
+        elif dataset_name == "surf":
+            if electrode in {"ECG", "EKG"}:
+                data_type = 1 if electrode == "ECG" else 2
+            else:
+                data_type = 3
+
+        return data_type
 
     def get_seizure_state(
         self, seizures, chunk_start_ts, chunk_end_ts, pre_seizure_time=3600
@@ -231,7 +281,31 @@ class BinaryToSql:
                 seizure_state = 2  # The chunk is during the pre-seizure period
         return seizure_state
 
-    def load_patient(self, pat_id):
+    def save_chunks_to_db(self, session, chunks, seizure_states, data_types, pat_id):
+        """
+        Saves the given chunks to the 'data_chunks' table in the database.
+
+        Args:
+        chunks (list[list[int]]): The chunks to be saved.
+        seizure_states (list[int]): The seizure state for each chunk.
+        pat_id (int): The patient ID for the chunks.
+        """
+        for chunk, seizure_state, data_type in zip(chunks, seizure_states, data_types):
+            # Convert the chunk to a byte array
+            data = bytes(chunk.astype(np.uint16).tobytes())
+
+            # Create a new DataChunk instance
+            data_chunk = DataChunk(
+                patient_id=pat_id,
+                seizure_state=seizure_state,
+                data_type=data_type,
+                data=data,
+            )
+
+            # Add the instance to the session
+            session.add(data_chunk)
+
+    def load_patient(self, pat_id: int):
         """
         Gets the seizures and samples for the given patient.
         Loads the first two seizures and the first sample.
@@ -243,25 +317,17 @@ class BinaryToSql:
         seizures = self.get_patient_seizures(pat_id)
         samples = self.get_patient_samples(pat_id)
 
-        sample = samples[0]  # get first sample
+        for sample in samples:
+            with session_scope(self.engine_str) as session:
+                # Load binary data
+                binary_data = self.load_binary(sample.data_file, sample.num_channels)
 
-        # Load binary data
-        binary_data = self.load_binary(sample.data_file)
+                # Downsample binary data to 256 Hz
+                down_sampled = self.preprocess_binary(
+                    binary_data, sample.sample_freq, 256
+                )
 
-        # Downsample binary data to 256 Hz
-        downsampled_data = self.preprocess_binary(binary_data, sample.sample_freq, 256)
-
-        # Break downsampled data into 1-second chunks
-        chunks = self.break_into_chunks(downsampled_data, 256)
-
-        # Apply seizure state to each chunk
-        for i, chunk in enumerate(chunks):
-            chunk_start_ts = sample.start_ts + timedelta(seconds=i)
-            chunk_end_ts = chunk_start_ts + timedelta(seconds=1)
-            seizure_state = self.get_seizure_state(
-                seizures, chunk_start_ts, chunk_end_ts
-            )
-
-            # Here you could add code to save the chunk and its seizure state to the database
-
-        # This function currently doesn't return anything. Depending on your needs, you might want to return the chunks, seizure states, or any other data.
+                # Break downsampled data into 1-second chunks
+                self.break_into_chunks(
+                    session, down_sampled, sample, seizures, 256, sample_length=1
+                )

@@ -89,6 +89,8 @@ class Sample(Base):
         if not isinstance(elec_names, str):
             raise TypeError("elec_names must be a string.")
 
+        self.elect_names_to_list(elect_names=elec_names)
+
         # Type verification for adm_id
         if not isinstance(adm_id, int):
             raise TypeError("adm_id must be an integer.")
@@ -121,6 +123,19 @@ class Sample(Base):
         self.duration_in_sec = duration_in_sec
         self.sample_bytes = sample_bytes
         self.data_file = data_file
+
+    @classmethod
+    def elect_names_to_list(cls, sample=None, elect_names=None):
+        if elect_names is None:
+            elect_names = sample.elec_names
+        try:
+            elec_names_list = elect_names.strip("[]").split(",")
+            elec_names_list = [
+                name.strip().replace("'", "") for name in elec_names_list
+            ]
+        except:
+            raise ValueError("elec_names must be a string representation of a list.")
+        return elec_names_list
 
     def __repr__(self):
         return (

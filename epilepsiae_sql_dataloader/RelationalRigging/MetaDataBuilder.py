@@ -217,14 +217,14 @@ class MetaDataBuilder(object):
             patient = session.query(Patient).filter(Patient.id == patient_id).first()
 
             for head_file in self.file_generator(directory):
-                try:
-                    data = self.read_sample_data(head_file).to_dict("records")[0]
-                    print(data)
-                    data["data_file"] = str(head_file.with_suffix(".data"))
-                    sample = Sample(**data)
-                    patient.samples.append(sample)
-                except Exception as e:
-                    print(f"Error processing file {head_file}: {e}")
+                # try:
+                data = self.read_sample_data(head_file).to_dict("records")[0]
+                print(data)
+                data["data_file"] = str(head_file.with_suffix(".data"))
+                sample = Sample(**data)
+                patient.samples.append(sample)
+                # except Exception as e:
+                #     print(f"Error processing file {head_file}: {e}")
 
     def create_patient(self, pat_id: int, dataset_id: int):
         with session_scope(self.engine_str) as session:
@@ -241,7 +241,7 @@ class MetaDataBuilder(object):
         print(directory)
         directory_path = Path(directory)
         pat_id = directory.split("/")[-1]
-        data = self.read_seizure_data(directory_path / "seizure_list")
+        data = self.read_seizure_data(directory_path / "seizurelist")
         patient_id = self.create_patient(pat_id.split("_")[1], dataset_id)
         self.load_seizure_data_to_db(data, patient_id)
         self.load_sample_dir_to_db(directory_path, patient_id)
@@ -270,18 +270,19 @@ class MetaDataBuilder(object):
 
     def start(self, directories):
         paths = []
-        for dir in directories:
+        for directory in directories:
             # If the dir ends in inv create the inv dataset if it doesn't already exist
             # if the dir ends in surf30 create the surf dataset if it doesn't already exist
-            if dir.endswith("inv"):
+            directory = str(directory)
+            if directory.endswith("inv"):
                 dataset_id = self.create_dataset("inv")
-            elif dir.endswith("surf30"):
+            elif directory.endswith("surf30"):
                 dataset_id = self.create_dataset("surf")
             else:
                 raise ValueError("Unknown dataset")
             paths.extend(
                 [
-                    f"{dir}/pat_*",
+                    f"{directory}/pat_*",
                 ]
             )
         self.load_data(paths, dataset_id)
