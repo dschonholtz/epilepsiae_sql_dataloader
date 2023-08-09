@@ -16,7 +16,6 @@ def get_data_summary(session):
         for patient in dataset.patients:
             patient_summary = {
                 "id": patient.id,
-                "name": patient.name,
                 "data_chunks": {},
             }
 
@@ -38,7 +37,6 @@ def print_summary(summary):
         print(f"Dataset Name: {dataset['name']}")
         for patient in dataset["patients"]:
             print(f"  Patient ID: {patient['id']}")
-            print(f"  Name: {patient['name']}")
             for (data_type, seizure_state), count in patient["data_chunks"].items():
                 print(
                     f"    Data Type: {data_type}, Seizure State: {seizure_state}, Count: {count}"
