@@ -1,9 +1,3 @@
-from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
-from epilepsiae_sql_dataloader.models.LoaderTables import Patient
-from epilepsiae_sql_dataloader.models.Base import Base
-
-
 """
 Example header file
 start_ts=2008-11-03 20:34:03.000

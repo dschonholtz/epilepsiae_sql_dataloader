@@ -1,7 +1,8 @@
 import click
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
-from epilepsiae_sql_dataloader.models.LoaderTables import Dataset
+from epilepsiae_sql_dataloader.models.Sample import Sample
+from epilepsiae_sql_dataloader.models.LoaderTables import Dataset, Patient, DataChunk
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
 
 
@@ -56,11 +57,11 @@ def main(connection_string):
     engine = create_engine(connection_string)
     Session = sessionmaker(bind=engine)
     session = Session()
-
-    summary = get_data_summary(session)
-    print_summary(summary)
-
-    session.close()
+    try:
+        summary = get_data_summary(session)
+        print_summary(summary)
+    finally:
+        session.close()
 
 
 if __name__ == "__main__":
