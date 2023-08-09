@@ -235,17 +235,17 @@ class MetaDataBuilder(object):
             session.add(patient)
             dataset.patients.append(patient)
             session.commit()
-            patient_id = patient.id
-        return patient_id
 
     def load_data_in_pat_dir(self, directory, dataset_id: int):
         print(directory)
         directory_path = Path(directory)
         pat_id = directory.split("/")[-1]
         data = self.read_seizure_data(directory_path / "seizure_list")
-        patient_id = self.create_patient(pat_id.split("_")[1], dataset_id)
-        self.load_seizure_data_to_db(data, patient_id)
-        self.load_sample_dir_to_db(directory_path, patient_id)
+        patient_id_int = int(pat_id.split("_")[1])
+        self.create_patient(patient_id_int, dataset_id)
+        print("Found seizure data: ", data)
+        self.load_seizure_data_to_db(data, patient_id_int)
+        self.load_sample_dir_to_db(directory_path, patient_id_int)
 
     def load_data(self, paths, dataset_id: int):
         """
