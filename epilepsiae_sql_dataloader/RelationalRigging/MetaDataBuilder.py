@@ -300,6 +300,8 @@ class MetaDataBuilder(object):
 @click.option("--drop-tables", is_flag=True, help="Drop all previous tables.")
 def main(directories, engine_str, drop_tables):
     """Console script for epilepsiae_sql_dataloader."""
+    if len(directories) > 1:
+        raise ValueError("Only one directory is supported at this time.")
     if drop_tables:
         engine = create_engine(engine_str)
         Base.metadata.drop_all(engine)
