@@ -27,6 +27,9 @@ from sklearn.preprocessing import normalize
 from datetime import timedelta
 from typing import List
 
+import os
+import click
+
 
 class BinaryToSql:
     def __init__(self, engine_str):
@@ -78,6 +81,7 @@ class BinaryToSql:
         Loads the binary data from the given file pointer.
         It is assumed that the binary data is stored as a 2D array of uint16 values of size -1, num_channels
         """
+        print(f"Loading binary data from {fp}")
         binary = np.fromfile(fp, dtype=dtype)
         binary = binary.reshape(-1, num_channels)
         return binary
@@ -128,15 +132,11 @@ class BinaryToSql:
 
         # Go through the data chunk by chunk
         for i in range(num_chunks):
-            if i > num_chunks * 0.75:
-                print(f"Processing chunk {i} of {num_chunks}")
             chunk_start_ts = sample.start_ts + timedelta(seconds=i * sample_length)
             chunk_end_ts = chunk_start_ts + timedelta(seconds=sample_length)
             seizure_state = self.get_seizure_state(
                 seizures, chunk_start_ts, chunk_end_ts
             )
-            # TODO THIS NEVER IS TRUE. There is either something wrong with my test data, this function call
-            # or how I handle it.
             if seizure_state != 0:
                 print(f"Found seizure state {seizure_state} at chunk {i}")
             chunk_data = data[
@@ -264,9 +264,6 @@ class BinaryToSql:
                     session, down_sampled, sample, seizures, 256, sample_length=1
                 )
 
-
-import os
-import click
 
 DEFAULT_DIR = "/mnt/external1/raw/inv"
 
