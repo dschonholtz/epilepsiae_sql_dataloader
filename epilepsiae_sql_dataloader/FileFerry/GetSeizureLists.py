@@ -44,7 +44,7 @@ def main(username, password, packages):
         for anchor_text in underscore_anchors:
             if anchor_text in packages:
                 continue
-            seizure_list_url = f"{base_url}patients/{anchor_text}/seizurelist"
+            seizure_list_url = f"{base_url}patients/{anchor_text}/seizure_list"
             try:
                 driver.get(seizure_list_url)
 

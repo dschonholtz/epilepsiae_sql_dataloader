@@ -430,7 +430,7 @@ def create_patient_data(_test_data_path: Path):
             write_data_file(rec_dir / "3.data", data3)
 
     # Create a seizurelist file for the seizure in the second recording
-    seizurelist_file = _test_data_path / "pat_1/seizurelist"
+    seizurelist_file = _test_data_path / "pat_1/seizure_list"
     # first seizure is 5 minutes long and starts 30 minutes into the last recording
     # there also is a five minute gap between sample 2 and 3
     onset1 = initial_start_time + timedelta(seconds=3600 * 2 + 30 * 60 + 5 * 60)
@@ -503,7 +503,7 @@ def test_write_data_file(tmp_path):
 
 
 def test_write_seizurelist_file(tmp_path):
-    file_path = tmp_path / "seizurelist"
+    file_path = tmp_path / "seizure_list"
     onset = datetime(2008, 11, 3, 21, 34, 3)
     offset = datetime(2008, 11, 3, 21, 34, 13)
     onset_sample = 1024 * 3600
