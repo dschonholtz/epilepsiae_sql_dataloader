@@ -35,61 +35,52 @@ class MetaDataBuilder(object):
             samples = session.query(Sample).all()
             return samples
 
-    def read_seizure_data(self, fp: Path):
-        """
-        Read in the data from the seizurefile
-        # colums are tab-separated:
-        # onset	offset	onset_sample	offset_sample
-        2008-11-11 06:10:03.416992	2008-11-11 06:10:08.325195	1526187	1531213
+    def read_seizure_data(self, fp: str):
+        # Lists to store the data
+        onset_list = []
+        offset_list = []
+        onset_sample_list = []
+        offset_sample_list = []
 
-        2008-11-11 06:35:33.729492	2008-11-11 06:35:39.258789	3093227	3098889
+        # Open the file and read line by line
+        with open(fp, "r") as file:
+            for line in file:
+                line = line.strip()  # Remove leading/trailing whitespace
+                if line.startswith("#") or line == "":
+                    continue
 
-        2008-11-11 07:25:57.974609	2008-11-11 07:26:03.691406	2466790	2472644
+                # Split the line by tabs
+                onset, offset, onset_sample, offset_sample = line.split("\t")
 
-        2008-11-11 07:54:56.308594	2008-11-11 07:55:01.308594	558396	563516
-        """
+                # Convert to appropriate types
+                onset = datetime.strptime(
+                    onset + (".000000" if "." not in onset else ""),
+                    "%Y-%m-%d %H:%M:%S.%f",
+                )
+                offset = datetime.strptime(
+                    offset + (".000000" if "." not in offset else ""),
+                    "%Y-%m-%d %H:%M:%S.%f",
+                )
+                onset_sample = int(onset_sample)
+                offset_sample = int(offset_sample)
 
-        def str_to_datetime(x):
-            try:
-                if "." not in x:
-                    x += ".000000"
-                return datetime.strptime(x, "%Y-%m-%d %H:%M:%S.%f")
-            except ValueError:
-                return np.nan
+                # Append to lists
+                onset_list.append(onset)
+                offset_list.append(offset)
+                onset_sample_list.append(onset_sample)
+                offset_sample_list.append(offset_sample)
 
-        # Function to convert string to int
-        def str_to_int(x):
-            try:
-                return int(x)
-            except ValueError:
-                return np.nan
-
-        def skip_blank_lines(x):
-            return not x.isspace()
-
-        # Define converters
-        converters = {
-            0: str_to_datetime,
-            1: str_to_datetime,
-            2: str_to_int,
-            3: str_to_int,
-        }
-
-        # Read the file using pandas, which can handle comments and ignore blank lines
-        print("Reading file: ", fp)
-        with open(fp, "r") as f:
-            print(f.read())
-        data = pd.read_csv(
-            fp,
-            delimiter="\t",
-            comment="#",
-            skiprows=lambda x: not skip_blank_lines(open(fp).readlines()[x]),
-
-            header=None,
-            converters=converters,
+        # Create a DataFrame from the lists
+        data = pd.DataFrame(
+            {
+                "onset": onset_list,
+                "offset": offset_list,
+                "onset_sample": onset_sample_list,
+                "offset_sample": offset_sample_list,
+            }
         )
+
         print(data)
-        data = data.dropna()
 
         # Convert the DataFrame to a numpy array and return
         return data.values
