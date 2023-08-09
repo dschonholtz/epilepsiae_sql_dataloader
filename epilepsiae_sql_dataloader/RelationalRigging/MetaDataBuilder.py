@@ -50,15 +50,18 @@ class MetaDataBuilder(object):
                     continue
 
                 # Split the line by tabs
-                (
-                    onset0,
-                    onset1,
-                    offset0,
-                    offset1,
-                    onset_sample,
-                    offset_sample,
-                ) = line.split(" ")
-
+                try:
+                    (
+                        onset0,
+                        onset1,
+                        offset0,
+                        offset1,
+                        onset_sample,
+                        offset_sample,
+                    ) = line.split(" ")
+                except ValueError:
+                    print(f"Error parsing line: {line}")
+                    continue
                 # Convert to appropriate types
                 onset = onset0 + " " + onset1
                 offset = offset0 + " " + offset1
