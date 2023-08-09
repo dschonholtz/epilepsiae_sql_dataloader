@@ -2,6 +2,7 @@ import click
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from epilepsiae_sql_dataloader.models.Sample import Sample
+from epilepsiae_sql_dataloader.models.Seizures import Seizure
 from epilepsiae_sql_dataloader.models.LoaderTables import Dataset, Patient, DataChunk
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
 
@@ -45,6 +46,18 @@ def get_data_summary(session):
                     f"  data_type: {data_type}, seizure_state: {seizure_state}, count: {count}"
                 )
 
+            seizures = (
+                session.query(Seizure.onset, Seizure.offset)
+                .filter(Seizure.pat_id == patient.id)
+                .all()
+            )
+
+            for seizure in seizures:
+                patient_summary["seizures"].append(
+                    {"onset": seizure.onset, "offset": seizure.offset}
+                )
+                print(f"  seizure: {seizure.onset}, {seizure.offset}")
+
             dataset_summary["patients"].append(patient_summary)
 
         summary.append(dataset_summary)
@@ -61,6 +74,9 @@ def print_summary(summary):
                 print(
                     f"    Data Type: {data_type}, Seizure State: {seizure_state}, Count: {count}"
                 )
+            print("  Seizures:")
+            for seizure in patient["seizures"]:
+                print(f"    Onset: {seizure['onset']}, Offset: {seizure['offset']}")
 
 
 @click.command()
