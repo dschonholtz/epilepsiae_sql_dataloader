@@ -64,6 +64,9 @@ class MetaDataBuilder(object):
             except ValueError:
                 return np.nan
 
+        def skip_blank_lines(x):
+            return not x.isspace()
+
         # Define converters
         converters = {
             0: str_to_datetime,
@@ -80,7 +83,8 @@ class MetaDataBuilder(object):
             fp,
             delimiter="\t",
             comment="#",
-            skip_blank_lines=True,
+            skiprows=lambda x: not skip_blank_lines(open(fp).readlines()[x]),
+
             header=None,
             converters=converters,
         )
