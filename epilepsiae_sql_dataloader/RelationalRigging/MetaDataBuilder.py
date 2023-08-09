@@ -75,7 +75,7 @@ class MetaDataBuilder(object):
         # Read the file using pandas, which can handle comments and ignore blank lines
         print("Reading file: ", fp)
         with open(fp, "r") as f:
-            print(fp.read())
+            print(f.read())
         data = pd.read_csv(
             fp,
             delimiter="\t",
