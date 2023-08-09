@@ -117,7 +117,7 @@ class MetaDataBuilder(object):
                     offset_sample=int(offset_sample),
                 )
                 patient.seizures.append(seizure)
-                print(f"Patient has this many seizures: {len(patient.seizures)}")
+            print(f"Patient has this many seizures: {len(patient.seizures)}")
 
     def read_sample_data(self, fp: Path):
         """
