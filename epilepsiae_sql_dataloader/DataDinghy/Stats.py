@@ -6,27 +6,38 @@ from epilepsiae_sql_dataloader.models.LoaderTables import Dataset, Patient, Data
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
 
 
+from sqlalchemy import func
+
+
 def get_data_summary(session):
+    summary = []
+
     # Query all datasets
     datasets = session.query(Dataset).all()
-    summary = []
 
     for dataset in datasets:
         dataset_summary = {"name": dataset.name, "patients": []}
-        for patient in dataset.patients:
-            patient_summary = {
-                "id": patient.id,
-                "data_chunks": {},
-            }
 
-            # Grouping data chunks by data_type and seizure_state
-            for chunk in patient.chunks:
-                key = (chunk.data_type, chunk.seizure_state)
-                patient_summary["data_chunks"][key] = (
-                    patient_summary["data_chunks"].get(key, 0) + 1
+        for patient in dataset.patients:
+            patient_summary = {"id": patient.id, "data_chunks": {}}
+
+            # Query data chunk counts by data_type and seizure_state
+            data_chunk_counts = (
+                session.query(
+                    DataChunk.data_type,
+                    DataChunk.seizure_state,
+                    func.count(DataChunk.id).label("count"),
                 )
+                .filter(DataChunk.patient_id == patient.id)
+                .group_by(DataChunk.data_type, DataChunk.seizure_state)
+                .all()
+            )
+
+            for data_type, seizure_state, count in data_chunk_counts:
+                patient_summary["data_chunks"][(data_type, seizure_state)] = count
 
             dataset_summary["patients"].append(patient_summary)
+
         summary.append(dataset_summary)
 
     return summary
