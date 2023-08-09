@@ -20,7 +20,6 @@ def get_data_summary(session):
     for dataset in datasets:
         print(f"In dataset: {dataset.name}")
         print(f"Patients are: {dataset.patients}")
-        dataset_summary = {"name": dataset.name, "patients": []}
 
         for patient in dataset.patients:
             patient_summary = {"id": patient.id, "data_chunks": {}}
@@ -49,30 +48,7 @@ def get_data_summary(session):
             print(f"about to query seizures for patient {patient.id}")
             print(f"Seizures are: {patient.seizures}")
             for seizure in patient.seizures:
-                patient_summary["seizures"].append(
-                    {"onset": seizure.onset, "offset": seizure.offset}
-                )
                 print(f"  seizure: {seizure.onset}, {seizure.offset}")
-
-            dataset_summary["patients"].append(patient_summary)
-
-        summary.append(dataset_summary)
-
-    return summary
-
-
-def print_summary(summary):
-    for dataset in summary:
-        print(f"Dataset Name: {dataset['name']}")
-        for patient in dataset["patients"]:
-            print(f"  Patient ID: {patient['id']}")
-            for (data_type, seizure_state), count in patient["data_chunks"].items():
-                print(
-                    f"    Data Type: {data_type}, Seizure State: {seizure_state}, Count: {count}"
-                )
-            print("  Seizures:")
-            for seizure in patient["seizures"]:
-                print(f"    Onset: {seizure['onset']}, Offset: {seizure['offset']}")
 
 
 @click.command()
@@ -88,8 +64,7 @@ def main(connection_string):
     Session = sessionmaker(bind=engine)
     session = Session()
     try:
-        summary = get_data_summary(session)
-        print_summary(summary)
+        get_data_summary(session)
     finally:
         session.close()
 

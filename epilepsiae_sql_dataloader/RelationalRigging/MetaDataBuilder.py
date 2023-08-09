@@ -220,7 +220,7 @@ class MetaDataBuilder(object):
             for head_file in self.file_generator(directory):
                 # try:
                 data = self.read_sample_data(head_file).to_dict("records")[0]
-                print(data)
+                # print(data)
                 data["data_file"] = str(head_file.with_suffix(".data"))
                 sample = Sample(**data)
                 patient.samples.append(sample)
