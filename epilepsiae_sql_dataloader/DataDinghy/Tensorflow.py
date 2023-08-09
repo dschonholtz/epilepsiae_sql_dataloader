@@ -10,8 +10,19 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
-def seizure_data_generator(session: Session):
-    data_chunk_ids = session.query(DataChunk.id).all()
+def seizure_data_generator(session: Session, seizure_states=[0, 2], data_types=None):
+    # Construct the query for fetching the IDs
+    query = session.query(DataChunk.id)
+
+    # Apply seizure state filter if specified
+    if seizure_states is not None:
+        query = query.filter(DataChunk.seizure_state.in_(seizure_states))
+
+    # Apply data type filter if specified
+    if data_types is not None:
+        query = query.filter(DataChunk.data_type.in_(data_types))
+
+    data_chunk_ids = query.all()
     total_chunks = len(data_chunk_ids)
 
     for idx in range(total_chunks):
@@ -25,9 +36,13 @@ def seizure_data_generator(session: Session):
         yield data, seizure_state
 
 
-def get_seizure_dataset(session: Session, batch_size=32):
+def get_seizure_dataset(
+    session: Session, seizure_states=[0, 2], data_types=None, batch_size=32
+):
     # Define the generator function and output data types
-    data_gen = lambda: seizure_data_generator(session)
+    data_gen = lambda: seizure_data_generator(
+        session, seizure_states=seizure_states, data_types=data_types
+    )
     output_signature = (
         tf.TensorSpec(shape=(None,), dtype=tf.int32),
         tf.TensorSpec(shape=(), dtype=tf.int32),
@@ -41,8 +56,22 @@ def get_seizure_dataset(session: Session, batch_size=32):
     return dataset.batch(batch_size)
 
 
-# Define a simple model
-def build_model(input_shape):
+def train_seizure_model(
+    session: Session, seizure_states=[0, 2], data_types=None, batch_size=32, epochs=10
+):
+    # Create the dataset
+    dataset = get_seizure_dataset(
+        session,
+        seizure_states=seizure_states,
+        data_types=data_types,
+        batch_size=batch_size,
+    )
+
+    # Determine the input shape from the dataset
+    for data, _ in dataset.take(1):
+        input_shape = data.shape[1:]
+
+    # Define a simple LSTM-based model for binary classification
     model = tf.keras.Sequential(
         [
             tf.keras.layers.Embedding(
@@ -53,21 +82,10 @@ def build_model(input_shape):
         ]
     )
 
+    # Compile the model
     model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
-    return model
 
+    # Train the model
+    history = model.fit(dataset, epochs=epochs)
 
-# Create a session
-engine = create_engine(ENGINE_STR)
-Session = sessionmaker(bind=engine)
-session = Session()
-
-# Create the dataset
-dataset = get_seizure_dataset(session)
-input_shape = dataset.element_spec[0].shape[1:]
-
-# Build the model
-model = build_model(input_shape)
-
-# Train the model
-model.fit(dataset, epochs=10)
+    return model, history

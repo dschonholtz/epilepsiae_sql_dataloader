@@ -287,6 +287,8 @@ def main(dir):
     pat_dirs = os.listdir(dir)
     for i, item in enumerate(pat_dirs):
         if os.path.isdir(os.path.join(dir, item)) and item.startswith("pat_"):
+            if item == "pat_81802":
+                continue
             # Extract the patient ID
             pat_id = int(item.split("_")[1])
             click.echo(f"Processing patient ID: {pat_id}")
@@ -294,7 +296,6 @@ def main(dir):
 
             # Load patient data using the BinaryToSQL class
             binary_to_sql.load_patient(pat_id)
-            break
 
     click.echo("All patients processed successfully.")
 
