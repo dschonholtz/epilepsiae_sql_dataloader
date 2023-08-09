@@ -249,9 +249,10 @@ class BinaryToSql:
         seizures = self.get_patient_seizures(pat_id)
         samples = self.get_patient_samples(pat_id)
 
-        for sample in samples:
+        for i, sample in enumerate(samples):
             with session_scope(self.engine_str) as session:
                 # Load binary data
+                print(f"Handling sample: {i} of {len(samples)}")
                 binary_data = self.load_binary(sample.data_file, sample.num_channels)
 
                 # Downsample binary data to 256 Hz
@@ -285,11 +286,13 @@ def main(dir):
     binary_to_sql = BinaryToSql(ENGINE_STR)
 
     # Loop through all directories with a "pat_" prefix
-    for item in os.listdir(dir):
+    pat_dirs = os.listdir(dir)
+    for i, item in enumerate(pat_dirs):
         if os.path.isdir(os.path.join(dir, item)) and item.startswith("pat_"):
             # Extract the patient ID
             pat_id = int(item.split("_")[1])
             click.echo(f"Processing patient ID: {pat_id}")
+            click.echo(f"On patient {i} of {len(pat_dirs)}")
 
             # Load patient data using the BinaryToSQL class
             binary_to_sql.load_patient(pat_id)
