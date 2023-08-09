@@ -137,8 +137,6 @@ class BinaryToSql:
             seizure_state = self.get_seizure_state(
                 seizures, chunk_start_ts, chunk_end_ts
             )
-            if seizure_state != 0:
-                print(f"Found seizure state {seizure_state} at chunk {i}")
             chunk_data = data[
                 i * sample_length * freq : (i + 1) * sample_length * freq, :
             ]
