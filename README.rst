@@ -54,7 +54,7 @@ This will add all of the seizure and patient/sample metadata to the database. Th
 
 To do this you can run the following command:
 
-```bash
+```
 cd epilepsiae_sql_dataloader
 python -m venv venv
 source venv/bin/activate
@@ -74,7 +74,7 @@ Notice, you may want to look at the RelationalRiggingMetaDataBuilder.py file to 
 
 Assuming you are still in the virtual environment you can run the following command:
 
-```bash
+```
 python epilepsiae_sql_dataloader/RelationalRigging/PushBinaryToSql.py --dir /mnt/external1/raw/inv
 ```
 
