@@ -88,7 +88,7 @@ class BinaryToSql:
         """
         # Downsample the data
         decimate_factor = sample_freq // new_sample_freq
-        x = decimate(binary, decimate_factor, axis=1)
+        x = decimate(binary, decimate_factor, axis=0)
         x = normalize(x, norm="l2", axis=1, copy=True, return_norm=False)
         return x
 
@@ -104,53 +104,6 @@ class BinaryToSql:
             patient = session.query(Patient).filter(Patient.id == patient_id).one()
             dataset_id = patient.dataset.id
             return dataset_id
-
-    def old_break_into_chunks(
-        self,
-        session,
-        data: np.ndarray,
-        sample: Sample,
-        seizures: List[Seizure],
-        sample_length: int = 1,
-    ) -> List[DataChunk]:
-        # Query the database to get the dataset associated with the patient
-        dataset_id = self.get_dataset_id(sample.pat_id)
-
-        dataset = session.query(Dataset).filter(Dataset.id == dataset_id).one()
-        dataset = dict_with_attrs(object_as_dict(dataset))
-
-        chunks = []
-        num_samples, num_channels = data.shape
-        num_chunks = num_samples // sample_length
-        sample_elect_names = Sample.elect_names_to_list(elect_names=sample.elec_names)
-
-        # Go through the data chunk by chunk
-        for i in range(num_chunks):
-            chunk_start_ts = sample.start_ts + timedelta(seconds=i * sample_length)
-            chunk_end_ts = chunk_start_ts + timedelta(seconds=sample_length)
-            seizure_state = self.get_seizure_state(
-                seizures, chunk_start_ts, chunk_end_ts
-            )
-            chunk_data = data[i * sample_length : (i + 1) * sample_length, :]
-
-            # Separate the chunk into its component channels
-            for j in range(num_channels):
-                channel_data = chunk_data[:, j]
-
-                # Create a new DataChunk instance
-                chunk = DataChunk(
-                    data=bytes(channel_data.astype(np.uint16).tobytes()),
-                    seizure_state=seizure_state,
-                    data_type=0,
-                    patient_id=sample.pat_id,
-                )
-                chunk = self.process_data_types(
-                    chunk, sample_elect_names[j], dataset.name
-                )
-
-                chunks.append(chunk)
-
-        return chunks
 
     def break_into_chunks(
         self,
@@ -175,13 +128,17 @@ class BinaryToSql:
 
         # Go through the data chunk by chunk
         for i in range(num_chunks):
-            if i % 5000 == 0:
+            if i > num_chunks * 0.75:
                 print(f"Processing chunk {i} of {num_chunks}")
             chunk_start_ts = sample.start_ts + timedelta(seconds=i * sample_length)
             chunk_end_ts = chunk_start_ts + timedelta(seconds=sample_length)
             seizure_state = self.get_seizure_state(
                 seizures, chunk_start_ts, chunk_end_ts
             )
+            # TODO THIS NEVER IS TRUE. There is either something wrong with my test data, this function call
+            # or how I handle it.
+            if seizure_state != 0:
+                print(f"Found seizure state {seizure_state} at chunk {i}")
             chunk_data = data[
                 i * sample_length * freq : (i + 1) * sample_length * freq, :
             ]
@@ -274,36 +231,11 @@ class BinaryToSql:
                 seizure_state = 1  # The chunk is during a seizure
                 break
             elif (
-                seizure.onset - timedelta(seconds=pre_seizure_time)
-                <= chunk_end_ts
-                < seizure.onset
+                seizure.onset - timedelta(seconds=pre_seizure_time) <= chunk_end_ts
+                and seizure.onset >= chunk_end_ts
             ):
                 seizure_state = 2  # The chunk is during the pre-seizure period
         return seizure_state
-
-    def save_chunks_to_db(self, session, chunks, seizure_states, data_types, pat_id):
-        """
-        Saves the given chunks to the 'data_chunks' table in the database.
-
-        Args:
-        chunks (list[list[int]]): The chunks to be saved.
-        seizure_states (list[int]): The seizure state for each chunk.
-        pat_id (int): The patient ID for the chunks.
-        """
-        for chunk, seizure_state, data_type in zip(chunks, seizure_states, data_types):
-            # Convert the chunk to a byte array
-            data = bytes(chunk.astype(np.uint16).tobytes())
-
-            # Create a new DataChunk instance
-            data_chunk = DataChunk(
-                patient_id=pat_id,
-                seizure_state=seizure_state,
-                data_type=data_type,
-                data=data,
-            )
-
-            # Add the instance to the session
-            session.add(data_chunk)
 
     def load_patient(self, pat_id: int):
         """
