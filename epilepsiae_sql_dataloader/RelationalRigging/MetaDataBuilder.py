@@ -50,9 +50,18 @@ class MetaDataBuilder(object):
                     continue
 
                 # Split the line by tabs
-                onset, offset, onset_sample, offset_sample = line.split("\t")
+                (
+                    onset0,
+                    onset1,
+                    offset0,
+                    offset1,
+                    onset_sample,
+                    offset_sample,
+                ) = line.split(" ")
 
                 # Convert to appropriate types
+                onset = onset0 + " " + onset1
+                offset = offset0 + " " + offset1
                 onset = datetime.strptime(
                     onset + (".000000" if "." not in onset else ""),
                     "%Y-%m-%d %H:%M:%S.%f",
