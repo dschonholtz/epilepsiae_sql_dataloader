@@ -274,6 +274,7 @@ class MetaDataBuilder(object):
             # If the dir ends in inv create the inv dataset if it doesn't already exist
             # if the dir ends in surf30 create the surf dataset if it doesn't already exist
             directory = str(directory)
+            print("directory: ", directory)
             if directory.endswith("inv"):
                 dataset_id = self.create_dataset("inv")
             elif directory.endswith("surf30"):
