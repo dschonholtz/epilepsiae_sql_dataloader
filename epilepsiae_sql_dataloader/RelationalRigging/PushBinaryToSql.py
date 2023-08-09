@@ -10,7 +10,7 @@ Noting the exact sample now and after downsamping, downsampling, then breaking t
 info accordingly.
 """
 
-from epilepsiae_sql_dataloader.utils import session_scope
+from epilepsiae_sql_dataloader.utils import session_scope, ENGINE_STR
 from epilepsiae_sql_dataloader.models.LoaderTables import (
     Patient,
     Dataset,
@@ -263,3 +263,43 @@ class BinaryToSql:
                 self.break_into_chunks(
                     session, down_sampled, sample, seizures, 256, sample_length=1
                 )
+
+
+import os
+import click
+
+DEFAULT_DIR = "/mnt/external1/raw/inv"
+
+
+@click.command()
+@click.option(
+    "--dir", default=DEFAULT_DIR, help="Directory containing the patient folders"
+)
+def main(dir):
+    """
+    Loops through all the pat directories in the given directory, extracts the patient ID, and processes the data using the BinaryToSQL class.
+    """
+    # Check if the directory exists
+    if not os.path.exists(dir):
+        click.echo(f"Directory {dir} does not exist.")
+        return
+
+    # Create an instance of BinaryToSQL
+    binary_to_sql = BinaryToSql(ENGINE_STR)
+
+    # Loop through all directories with a "pat_" prefix
+    for item in os.listdir(dir):
+        if os.path.isdir(os.path.join(dir, item)) and item.startswith("pat_"):
+            # Extract the patient ID
+            pat_id = int(item.split("_")[1])
+            click.echo(f"Processing patient ID: {pat_id}")
+
+            # Load patient data using the BinaryToSQL class
+            binary_to_sql.load_patient(pat_id)
+            break
+
+    click.echo("All patients processed successfully.")
+
+
+if __name__ == "__main__":
+    main()
