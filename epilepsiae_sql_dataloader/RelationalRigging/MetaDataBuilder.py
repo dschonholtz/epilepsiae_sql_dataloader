@@ -89,7 +89,7 @@ class MetaDataBuilder(object):
             }
         )
 
-        print(data)
+        # print(data)
 
         # Convert the DataFrame to a numpy array and return
         return data.values
@@ -251,7 +251,7 @@ class MetaDataBuilder(object):
         data = self.read_seizure_data(directory_path / "seizure_list")
         patient_id_int = int(pat_id.split("_")[1])
         self.create_patient(patient_id_int, dataset_id)
-        print("Found seizure data: ", data)
+        # print("Found seizure data: ", data)
         self.load_seizure_data_to_db(data, patient_id_int)
         self.load_sample_dir_to_db(directory_path, patient_id_int)
 
