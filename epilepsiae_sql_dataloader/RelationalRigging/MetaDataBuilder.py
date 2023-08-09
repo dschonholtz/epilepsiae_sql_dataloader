@@ -106,8 +106,7 @@ class MetaDataBuilder(object):
                     offset_sample=int(offset_sample),
                 )
                 patient.seizures.append(seizure)
-
-    def read_sample_data(self, fp: Path):
+                print("patient has this many seizures: " + str(len(patient.seizures)))
         """
         Format of file:
         start_ts=2008-11-03 20:34:03.000

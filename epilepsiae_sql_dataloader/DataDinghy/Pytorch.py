@@ -10,39 +10,23 @@ from epilepsiae_sql_dataloader.models.LoaderTables import (
 
 
 class SeizureDataset(Dataset):
-    def __init__(
-        self,
-        session: Session,
-        data_type=None,
-        seizure_state=None,
-        dataset_id=None,
-        patient_id=None,
-        transform=None,
-    ):
+    def __init__(self, session: Session, batch_size=1000, transform=None):
         self.session = session
         self.transform = transform
-
-        query = session.query(DataChunk)
-
-        if data_type is not None:
-            query = query.filter(DataChunk.data_type == data_type)
-
-        if seizure_state is not None:
-            query = query.filter(DataChunk.seizure_state == seizure_state)
-
-        if dataset_id is not None:
-            query = query.join(Dataset).filter(Dataset.id == dataset_id)
-
-        if patient_id is not None:
-            query = query.join(Patient).filter(Patient.id == patient_id)
-
-        self.data_chunks = query.all()
+        self.batch_size = batch_size
+        self.data_chunk_ids = session.query(DataChunk.id).all()
+        self.total_chunks = len(self.data_chunk_ids)
 
     def __len__(self):
-        return len(self.data_chunks)
+        return self.total_chunks
 
     def __getitem__(self, idx):
-        data_chunk = self.data_chunks[idx]
+        # Fetch the primary key for the desired index
+        data_chunk_id = self.data_chunk_ids[idx]
+
+        # Query the corresponding data chunk by primary key
+        data_chunk = self.session.query(DataChunk).get(data_chunk_id)
+
         sample_data = {
             "data": data_chunk.data,
             "seizure_state": data_chunk.seizure_state,

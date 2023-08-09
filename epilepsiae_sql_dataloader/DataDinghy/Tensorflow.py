@@ -5,60 +5,69 @@ from epilepsiae_sql_dataloader.models.LoaderTables import (
     Dataset as DBDataset,
     Patient,
 )
+from epilepsiae_sql_dataloader.utils import ENGINE_STR
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
 
 
-class SeizureDataGenerator(tf.keras.utils.Sequence):
-    def __init__(
-        self,
-        session: Session,
-        data_type=None,
-        seizure_state=None,
-        dataset_id=None,
-        patient_id=None,
-        batch_size=32,
-        shuffle=True,
-    ):
-        self.session = session
-        self.batch_size = batch_size
-        self.shuffle = shuffle
+def seizure_data_generator(session: Session):
+    data_chunk_ids = session.query(DataChunk.id).all()
+    total_chunks = len(data_chunk_ids)
 
-        query = session.query(DataChunk)
+    for idx in range(total_chunks):
+        data_chunk_id = data_chunk_ids[idx]
+        data_chunk = session.query(DataChunk).get(data_chunk_id)
 
-        if data_type is not None:
-            query = query.filter(DataChunk.data_type == data_type)
+        # Assuming data is stored as a sequence of integers
+        data = [int(byte) for byte in data_chunk.data]
+        seizure_state = data_chunk.seizure_state
 
-        if seizure_state is not None:
-            query = query.filter(DataChunk.seizure_state == seizure_state)
+        yield data, seizure_state
 
-        if dataset_id is not None:
-            query = query.join(DBDataset).filter(DBDataset.id == dataset_id)
 
-        if patient_id is not None:
-            query = query.join(Patient).filter(Patient.id == patient_id)
+def get_seizure_dataset(session: Session, batch_size=32):
+    # Define the generator function and output data types
+    data_gen = lambda: seizure_data_generator(session)
+    output_signature = (
+        tf.TensorSpec(shape=(None,), dtype=tf.int32),
+        tf.TensorSpec(shape=(), dtype=tf.int32),
+    )
 
-        self.data_chunks = query.all()
-        self.indices = list(range(len(self.data_chunks)))
-        self.on_epoch_end()
+    # Create a tf.data.Dataset from the generator
+    dataset = tf.data.Dataset.from_generator(
+        data_gen, output_signature=output_signature
+    )
 
-    def __len__(self):
-        return int(len(self.data_chunks) / self.batch_size)
+    return dataset.batch(batch_size)
 
-    def __getitem__(self, idx):
-        indices_batch = self.indices[
-            idx * self.batch_size : (idx + 1) * self.batch_size
+
+# Define a simple model
+def build_model(input_shape):
+    model = tf.keras.Sequential(
+        [
+            tf.keras.layers.Embedding(
+                input_dim=256, output_dim=16, input_shape=input_shape
+            ),
+            tf.keras.layers.LSTM(32),
+            tf.keras.layers.Dense(1, activation="sigmoid"),
         ]
-        data_chunk_batch = [self.data_chunks[i] for i in indices_batch]
+    )
 
-        X = []
-        y = []
-        for data_chunk in data_chunk_batch:
-            X.append(data_chunk.data)
-            y.append(data_chunk.seizure_state)
+    model.compile(optimizer="adam", loss="binary_crossentropy", metrics=["accuracy"])
+    return model
 
-        return tf.convert_to_tensor(X, dtype=tf.float32), tf.convert_to_tensor(
-            y, dtype=tf.int32
-        )
 
-    def on_epoch_end(self):
-        if self.shuffle:
-            tf.random.shuffle(self.indices)
+# Create a session
+engine = create_engine(ENGINE_STR)
+Session = sessionmaker(bind=engine)
+session = Session()
+
+# Create the dataset
+dataset = get_seizure_dataset(session)
+input_shape = dataset.element_spec[0].shape[1:]
+
+# Build the model
+model = build_model(input_shape)
+
+# Train the model
+model.fit(dataset, epochs=10)
