@@ -46,13 +46,7 @@ def get_data_summary(session):
                     f"  data_type: {data_type}, seizure_state: {seizure_state}, count: {count}"
                 )
 
-            seizures = (
-                session.query(Seizure.onset, Seizure.offset)
-                .filter(Seizure.pat_id == patient.id)
-                .all()
-            )
-
-            for seizure in seizures:
+            for seizure in patient.seizures:
                 patient_summary["seizures"].append(
                     {"onset": seizure.onset, "offset": seizure.offset}
                 )
