@@ -73,6 +73,9 @@ class MetaDataBuilder(object):
         }
 
         # Read the file using pandas, which can handle comments and ignore blank lines
+        print("Reading file: ", fp)
+        with open(fp, "r") as f:
+            print(fp.read())
         data = pd.read_csv(
             fp,
             delimiter="\t",
@@ -81,6 +84,7 @@ class MetaDataBuilder(object):
             header=None,
             converters=converters,
         )
+        print(data)
         data = data.dropna()
 
         # Convert the DataFrame to a numpy array and return
