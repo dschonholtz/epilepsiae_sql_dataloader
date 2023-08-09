@@ -31,7 +31,7 @@ from contextlib import contextmanager
 from sqlalchemy.orm import sessionmaker
 
 
-ENGINE_STR = "postgresql+psycopg2://postgres:postgres@localhost/seizure_db_test"
+ENGINE_STR = "postgresql+psycopg2://postgres:postgres@localhost/seizure_db"
 
 
 @contextmanager
