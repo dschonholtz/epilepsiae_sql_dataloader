@@ -41,7 +41,7 @@ class SeizureDataset(Dataset):
         query = session.query(DataChunk.id)
 
         # Apply patient filter
-        query = query.join(DataChunk).filter(DataChunk.patient_id == patient_id)
+        query = query.filter(DataChunk.patient_id == patient_id)
 
         # Apply seizure state filter if specified
         if self.seizure_states is not None:
