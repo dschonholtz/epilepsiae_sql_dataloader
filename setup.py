@@ -19,6 +19,7 @@ requirements = [
     "selenium",
     "scipy",
     "scikit-learn",
+    "alembic",
 ]
 
 test_requirements = [

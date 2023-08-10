@@ -3,7 +3,7 @@ This module contains the models for the dataloader.
 Everything here references what will be updated and queried to load data into an ML model later
 """
 
-from sqlalchemy import Column, Integer, String, ForeignKey, SmallInteger
+from sqlalchemy import Column, Integer, String, ForeignKey, SmallInteger, Index
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.dialects.postgresql import BYTEA
@@ -85,6 +85,9 @@ class DataChunk(Base):
     data = Column(BYTEA)
 
     patient = relationship(Patient, back_populates="chunks")
+    idx_patient_seizure_data_type = Index(
+        "idx_patient_seizure_data_type", "patient_id", "seizure_state", "data_type"
+    )
 
 
 def object_as_dict(obj):
