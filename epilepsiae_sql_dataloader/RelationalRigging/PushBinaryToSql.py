@@ -84,6 +84,7 @@ class BinaryToSql:
         print(f"Loading binary data from {fp}")
         binary = np.fromfile(fp, dtype=dtype)
         binary = binary.reshape(-1, num_channels)
+
         return binary
 
     def preprocess_binary(self, binary, sample_freq, new_sample_freq):
@@ -251,7 +252,15 @@ class BinaryToSql:
             with session_scope(self.engine_str) as session:
                 # Load binary data
                 print(f"Handling sample: {i} of {len(samples)}")
-                binary_data = self.load_binary(sample.data_file, sample.num_channels)
+                try:
+                    binary_data = self.load_binary(
+                        sample.data_file, sample.num_channels
+                    )
+                except Exception as e:
+                    print(f"Error loading binary data for sample: {sample}")
+                    # we don't wan tto stop the whole process if one sample is bad.
+                    print(e)
+                    continue
 
                 # Downsample binary data to 256 Hz
                 down_sampled = self.preprocess_binary(
