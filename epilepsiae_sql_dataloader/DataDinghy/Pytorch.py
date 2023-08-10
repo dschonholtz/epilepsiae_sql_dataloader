@@ -157,7 +157,7 @@ if __name__ == "__main__":
     # 0: ieeg
     # 1: ecg
     # 2: ekg
-    # 3: eeg
+    # 3: surface eeg
 
     # Train a seizure model
-    model = train_torch_seizure_model(session, epochs=1, data_types=[0])
+    model = train_torch_seizure_model(session, epochs=1, data_types=[1])
