@@ -10,7 +10,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
-DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
 class SeizureDataset(Dataset):
@@ -28,6 +28,7 @@ class SeizureDataset(Dataset):
         self.data_types = data_types
         self.transform = transform
         self.batch_size = batch_size
+        print("About to do query")
 
         # Construct the query for fetching the IDs
         query = session.query(DataChunk.id)
@@ -44,7 +45,9 @@ class SeizureDataset(Dataset):
             query = query.filter(DataChunk.data_type.in_(self.data_types))
 
         self.data_chunk_ids = query.all()
+        print("query done.")
         self.total_chunks = len(self.data_chunk_ids)
+        print("total chunks")
 
     def __len__(self):
         return self.total_chunks
@@ -78,7 +81,7 @@ def train_torch_seizure_model(
 ):
     # Create the seizure dataset
     seizure_dataset = SeizureDataset(
-        session, seizure_states=seizure_states, data_types=data_types
+        session, 81802, seizure_states=seizure_states, data_types=data_types
     )
     data_loader = DataLoader(seizure_dataset, batch_size=batch_size, shuffle=True)
 
