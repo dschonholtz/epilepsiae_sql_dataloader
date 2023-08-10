@@ -1,5 +1,3 @@
-from torch.utils.data import Dataset
-from sqlalchemy.orm import Session
 from epilepsiae_sql_dataloader.models.LoaderTables import (
     DataChunk,
     Dataset as DBDataset,
@@ -8,6 +6,12 @@ from epilepsiae_sql_dataloader.models.LoaderTables import (
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
+from torch.utils.data import Dataset
+import torch
+from sqlalchemy.orm import Session
+import torch.nn as nn
+from torch.utils.data import DataLoader
 
 
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -69,11 +73,6 @@ class SeizureDataset(Dataset):
             sample_data = self.transform(sample_data)
 
         return sample_data
-
-
-import torch
-import torch.nn as nn
-from torch.utils.data import DataLoader
 
 
 def train_torch_seizure_model(
