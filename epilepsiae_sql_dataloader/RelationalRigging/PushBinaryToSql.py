@@ -287,7 +287,15 @@ def main(dir):
     pat_dirs = os.listdir(dir)
     for i, item in enumerate(pat_dirs):
         if os.path.isdir(os.path.join(dir, item)) and item.startswith("pat_"):
-            if item == "pat_81802":
+            # pat_21602 seizures aren't loading! We'll have to fix that. and we are skipping it
+            # the others have already been done.
+            if item in [
+                "pat_81802",
+                "pat_11502",
+                "pat_109602",
+                "pat_26402",
+                "pat_21602",
+            ]:
                 continue
             # Extract the patient ID
             pat_id = int(item.split("_")[1])
