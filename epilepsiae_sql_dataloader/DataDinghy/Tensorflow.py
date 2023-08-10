@@ -1,3 +1,9 @@
+"""
+I created this, but the tensorflow install docs are intimidating.
+I have not installed tensorflow bundled in this repo. 
+if you install tensorflow in the venv, you should still be able to run this script.
+"""
+
 import tensorflow as tf
 from sqlalchemy.orm import Session
 from epilepsiae_sql_dataloader.models.LoaderTables import (

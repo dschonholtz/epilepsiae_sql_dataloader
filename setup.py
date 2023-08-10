@@ -19,7 +19,8 @@ requirements = [
     "selenium",
     "scipy",
     "scikit-learn",
-    "alembic",
+    "alembic",  # for database migrations
+    "torch>=2.0.0",  # for pytorch
 ]
 
 test_requirements = [

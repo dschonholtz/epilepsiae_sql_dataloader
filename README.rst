@@ -39,6 +39,30 @@ moved into the inv dir.
 
 For us they live on an external drive at /mnt/external1/raw/inv and /mnt/external1/raw/surf30
 
+Next you must get seizure_lists.
+These files are not available via SFTP, and to the best of our knowledge at Northeastern, the only way to get access to them, is to 
+navigate the website and to manually pull them down.
+
+This is extremely painful, so we have automated this process in the FileFerry directory with a selenium script. 
+You'll have to enter your username and password in the script, and then you can run it with:
+
+```
+python GetSeizureLists.py --username <username> --password <password>
+```
+
+This will make a dir of seizurelists locally, and then you can push them up to the server in the right locations with another script:
+        
+        ```
+        pushSeizureListsToServer.py
+        ```
+
+For that script you will have to enter your password for each separate SCP, but each file will end up exactly where you need it.
+
+Finally, the website for FR216 seizures in surf30 does not render on the website.
+So we extracted the data from the table and stored in as a string in the HandleFR216_surf30.py file and you can push that specific 
+file to the server by running that script. (This should be the only data from the epilepsiae dataset you'll find in this repo.)
+
+
 2. Setup postgreSQL. 
 
 This should be fairly easy. We cloned the repository onto our server and then ran the commands in the makefile:
@@ -47,6 +71,7 @@ This should be fairly easy. We cloned the repository onto our server and then ra
 `make create-db`
 
 This sets up and instantiates a postgres server with the tables defined in epilepsiae_sql_dataloader/models
+
 
 3. Add metadata to the database
 
@@ -59,7 +84,8 @@ cd epilepsiae_sql_dataloader
 python -m venv venv
 source venv/bin/activate
 pip install -e .
-python -m epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder --directories /mnt/external1/raw/inv --directories /mnt/external1/raw/surf30 --drop-tables
+python -m epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder --directories /mnt/external1/raw/inv --drop-tables
+python -m epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder --directories /mnt/external1/raw/surf30 --drop-tables
 ```
 
 This does the following:
@@ -87,7 +113,21 @@ You can now use the dataloaders in DataDinghy to load data into your ML model.
 It is worth noting, as long as the database is set up, you can pip install this package
 and use it in your project without having to deal directly with the source code.
 
-The dataloaders are a work in progress though and will be published shortly
+The package is not yet on PyPi, but you can install it from github with:
+
+```
+git clone git@github.com:dschonholtz/epilepsiae_sql_dataloader.git
+cd epilepsiae_sql_dataloader
+python -m venv venv
+source venv/bin/activate
+pip install .
+```
+
+Then you can use the dataloaders in DataDinghy to load data into your ML model.
+In your python project you can do something like:
+
+```
+from epilepsiae_sql_dataloader.DataDinghy.DataLoaders import Pytorch
 
 Features
 --------

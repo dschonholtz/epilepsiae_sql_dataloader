@@ -10,10 +10,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 
+DEVICE = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+
+
 class SeizureDataset(Dataset):
     def __init__(
         self,
         session: Session,
+        patient_id: int,
         seizure_states=[0, 2],
         data_types=None,
         batch_size=1000,
@@ -27,6 +31,9 @@ class SeizureDataset(Dataset):
 
         # Construct the query for fetching the IDs
         query = session.query(DataChunk.id)
+
+        # Apply patient filter
+        query = query.join(DataChunk).filter(DataChunk.patient_id == patient_id)
 
         # Apply seizure state filter if specified
         if self.seizure_states is not None:
@@ -93,6 +100,7 @@ def train_torch_seizure_model(
 
     # Assuming data is represented by integers in the range [0, 255]
     model = SeizureClassifier(input_dim=256, hidden_dim=32)
+    model.to(DEVICE)
 
     # Loss and optimizer
     criterion = nn.BCELoss()
@@ -101,9 +109,11 @@ def train_torch_seizure_model(
     # Training loop
     for epoch in range(epochs):
         for batch_data in data_loader:
-            data = torch.tensor(batch_data["data"], dtype=torch.long)
-            target = torch.tensor(batch_data["seizure_state"], dtype=torch.float).view(
-                -1, 1
+            data = torch.tensor(batch_data["data"], dtype=torch.long).to(DEVICE)
+            target = (
+                torch.tensor(batch_data["seizure_state"], dtype=torch.float)
+                .view(-1, 1)
+                .to(DEVICE)
             )
 
             # Forward pass
