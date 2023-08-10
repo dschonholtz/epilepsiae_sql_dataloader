@@ -9,6 +9,8 @@ I need to leave everything else intact
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from epilepsiae_sql_dataloader.models.LoaderTables import DataChunk
+from epilepsiae_sql_dataloader.models.Sample import Sample
+from epilepsiae_sql_dataloader.models.Seizures import Seizure
 import click
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
 
