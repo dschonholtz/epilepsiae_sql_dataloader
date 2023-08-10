@@ -127,7 +127,20 @@ Then you can use the dataloaders in DataDinghy to load data into your ML model.
 In your python project you can do something like:
 
 ```
-from epilepsiae_sql_dataloader.DataDinghy.DataLoaders import Pytorch
+from epilepsiae_sql_dataloader.DataDinghy import Pytorch
+```
+
+Finally, you can also run:
+
+```
+python epilepsiae_sql_dataloader/DataDinghy/Stats.py
+```
+
+To see stats on every single patient. 
+This takes a little while, but it will list out the number of seizures and each type of datachunk.
+This is mostly a debugging tool but loading data into the DB, but it can also serve as a framework for writing custom dataloaders
+for custom data.
+Or for finding proper ratios for things like sigmoid focal loss.
 
 Features
 --------

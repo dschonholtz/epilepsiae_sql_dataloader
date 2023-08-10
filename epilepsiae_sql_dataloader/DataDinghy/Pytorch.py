@@ -35,7 +35,9 @@ class SeizureDataset(Dataset):
         self.data_types = data_types
         self.transform = transform
         self.batch_size = batch_size
-        print("About to do query")
+        print(
+            "About to do query. (This part takes a couple minutes then we can move at light speed)"
+        )
 
         # Construct the query for fetching the IDs
         query = session.query(DataChunk.id)
@@ -54,7 +56,7 @@ class SeizureDataset(Dataset):
         self.data_chunk_ids = query.all()
         print("query done.")
         self.total_chunks = len(self.data_chunk_ids)
-        print("total chunks")
+        print(f"total chunks: {self.total_chunks}   ")
 
     def __len__(self):
         return self.total_chunks
@@ -79,7 +81,7 @@ class SeizureDataset(Dataset):
 
 
 def train_torch_seizure_model(
-    session: Session, seizure_states=[0, 2], data_types=None, batch_size=32, epochs=10
+    session: Session, seizure_states=[0, 2], data_types=None, batch_size=128, epochs=10
 ):
     # Create the seizure dataset
     seizure_dataset = SeizureDataset(
@@ -151,5 +153,11 @@ if __name__ == "__main__":
     Session = sessionmaker(bind=engine)
     session = Session()
 
+    # Datatypes:
+    # 0: ieeg
+    # 1: ecg
+    # 2: ekg
+    # 3: eeg
+
     # Train a seizure model
-    model = train_torch_seizure_model(session, epochs=1)
+    model = train_torch_seizure_model(session, epochs=1, data_types=[0])
