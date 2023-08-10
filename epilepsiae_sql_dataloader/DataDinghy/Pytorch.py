@@ -64,7 +64,7 @@ class SeizureDataset(Dataset):
         data_chunk_id = self.data_chunk_ids[idx]
 
         # Query the corresponding data chunk by primary key
-        data_chunk = self.session.query(DataChunk).get(data_chunk_id)
+        data_chunk = self.session.get(DataChunk, data_chunk_id)
 
         sample_data = {
             "data": data_chunk.data,
@@ -113,11 +113,19 @@ def train_torch_seizure_model(
 
     # Training loop
     for epoch in range(epochs):
+        print(f"epoch {epoch}")
+        i = 0
         for batch_data in data_loader:
+            i += 1
+            if i % 100 == 0:
+                print(f"batch {i}")
             data = torch.tensor(batch_data["data"], dtype=torch.long).to(DEVICE)
             target = (
-                torch.tensor(batch_data["seizure_state"], dtype=torch.float)
+                batch_data["seizure_state"]
+                .clone()
+                .detach()
                 .view(-1, 1)
+                .float()
                 .to(DEVICE)
             )
 
