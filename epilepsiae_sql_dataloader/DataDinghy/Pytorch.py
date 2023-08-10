@@ -3,6 +3,9 @@ from epilepsiae_sql_dataloader.models.LoaderTables import (
     Dataset as DBDataset,
     Patient,
 )
+from epilepsiae_sql_dataloader.models.Sample import Sample
+from epilepsiae_sql_dataloader.models.Seizures import Seizure
+
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
