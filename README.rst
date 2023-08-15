@@ -95,6 +95,8 @@ This does the following:
 
 Notice, you may want to look at the RelationalRiggingMetaDataBuilder.py file to figure out exactly what options you want.
 
+
+WORK IN PROGRESS DO NOT DO ANY MATERIALIZED VIEW STUFF YET.
 1. Create materialized Views.
 
 The tables are indexed already. But to make the queries really fast, we need to leverage materialized views.

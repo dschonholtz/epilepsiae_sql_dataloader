@@ -7,7 +7,6 @@ from epilepsiae_sql_dataloader.models.LoaderTables import (
     Dataset,
     Patient,
     DataChunk,
-    DataChunkSummary,
 )
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
 
@@ -32,12 +31,12 @@ def get_data_summary(session):
             # Query data chunk counts by data_type and seizure_state
             data_chunk_counts = (
                 session.query(
-                    DataChunkSummary.data_type,
-                    DataChunkSummary.seizure_state,
-                    func.count(DataChunkSummary.id).label("count"),
+                    DataChunk.data_type,
+                    DataChunk.seizure_state,
+                    func.count(DataChunk.id).label("count"),
                 )
-                .filter(DataChunkSummary.patient_id == patient.id)
-                .group_by(DataChunkSummary.data_type, DataChunkSummary.seizure_state)
+                .filter(DataChunk.patient_id == patient.id)
+                .group_by(DataChunk.data_type, DataChunk.seizure_state)
                 .all()
             )
             print(f"queried data chunks for patient {patient.id}")
