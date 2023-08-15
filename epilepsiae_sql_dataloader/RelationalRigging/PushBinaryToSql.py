@@ -247,6 +247,7 @@ class BinaryToSql:
         """
         seizures = self.get_patient_seizures(pat_id)
         samples = self.get_patient_samples(pat_id)
+        bad_binaries = 0
 
         for i, sample in enumerate(samples):
             with session_scope(self.engine_str) as session:
@@ -260,17 +261,33 @@ class BinaryToSql:
                     print(f"Error loading binary data for sample: {sample}")
                     # we don't wan tto stop the whole process if one sample is bad.
                     print(e)
+                    bad_binaries += 1
                     continue
 
-                # Downsample binary data to 256 Hz
-                down_sampled = self.preprocess_binary(
-                    binary_data, sample.sample_freq, 256
-                )
+                try:
+                    # Downsample binary data to 256 Hz
+                    down_sampled = self.preprocess_binary(
+                        binary_data, sample.sample_freq, 256
+                    )
+                except Exception as e:
+                    print(f"Error downsampling binary data for sample: {sample}")
+                    print(e)
+                    bad_binaries += 1
+                    continue
 
-                # Break downsampled data into 1-second chunks
-                self.break_into_chunks(
-                    session, down_sampled, sample, seizures, 256, sample_length=1
-                )
+                try:
+                    # Break downsampled data into 1-second chunks
+                    self.break_into_chunks(
+                        session, down_sampled, sample, seizures, 256, sample_length=1
+                    )
+                except Exception as e:
+                    print(
+                        f"Error breaking downsampled data into chunks for sample: {sample}"
+                    )
+                    print(e)
+                    bad_binaries += 1
+                    continue
+        print("Bad Binaries: ", bad_binaries)
 
 
 DEFAULT_DIR = "/mnt/external1/raw/inv"

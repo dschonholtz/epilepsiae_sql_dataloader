@@ -11,7 +11,6 @@ from sqlalchemy import func
 
 
 def get_data_summary(session):
-    summary = []
     print("about to query datasets")
     # Query all datasets
     datasets = session.query(Dataset).all()

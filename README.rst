@@ -63,7 +63,7 @@ So we extracted the data from the table and stored in as a string in the HandleF
 file to the server by running that script. (This should be the only data from the epilepsiae dataset you'll find in this repo.)
 
 
-2. Setup postgreSQL. 
+1. Setup postgreSQL. 
 
 This should be fairly easy. We cloned the repository onto our server and then ran the commands in the makefile:
 
@@ -73,7 +73,7 @@ This should be fairly easy. We cloned the repository onto our server and then ra
 This sets up and instantiates a postgres server with the tables defined in epilepsiae_sql_dataloader/models
 
 
-3. Add metadata to the database
+1. Add metadata to the database
 
 This will add all of the seizure and patient/sample metadata to the database. This way we can quickly query when seizures happened for what patients in what datasets without having to do raw file navigation.
 
@@ -85,7 +85,7 @@ python -m venv venv
 source venv/bin/activate
 pip install -e .
 python -m epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder --directories /mnt/external1/raw/inv --drop-tables
-python -m epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder --directories /mnt/external1/raw/surf30 --drop-tables
+python -m epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder --directories /mnt/external1/raw/surf30
 ```
 
 This does the following:
@@ -95,8 +95,24 @@ This does the following:
 
 Notice, you may want to look at the RelationalRiggingMetaDataBuilder.py file to figure out exactly what options you want.
 
+1. Create materialized Views.
 
-4. Add the binary data to the database
+The tables are indexed already. But to make the queries really fast, we need to leverage materialized views.
+
+To create them, and to refresh them if you update the tables, you can run the following command:
+
+```
+python epilepsiae_sql_dataloader/RelationalRigging/CreateMaterializedViews.py
+```
+
+And if you have inserted a bunch of data after creating the views. You can refresh them with:
+
+```
+python epilepsiae_sql_dataloader/RelationalRigging/RefreshMaterializedViews.py
+```
+
+
+1. Add the binary data to the database
 
 Assuming you are still in the virtual environment you can run the following command:
 
