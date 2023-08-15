@@ -90,6 +90,16 @@ class DataChunk(Base):
     )
 
 
+class DataChunkSummary(Base):
+    __table_args__ = {"extend_existing": True}
+    __tablename__ = "data_chunk_summary"
+    id = Column(Integer, primary_key=True)  # If you have an ID column in the view
+    patient_id = Column(Integer)
+    data_type = Column(Integer)
+    seizure_state = Column(Integer)
+    count = Column(Integer)
+
+
 def object_as_dict(obj):
     """
     Converts an SQLAlchemy object into a dictionary.

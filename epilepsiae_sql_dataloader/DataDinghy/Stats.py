@@ -3,18 +3,19 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from epilepsiae_sql_dataloader.models.Sample import Sample
 from epilepsiae_sql_dataloader.models.Seizures import Seizure
-from epilepsiae_sql_dataloader.models.LoaderTables import Dataset, Patient, DataChunk
+from epilepsiae_sql_dataloader.models.LoaderTables import (
+    Dataset,
+    Patient,
+    DataChunk,
+    DataChunkSummary,
+)
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
-from sqlalchemy.ext.automap import automap_base
 
 
 from sqlalchemy import func
 
 
 def get_data_summary(session):
-    Base = automap_base()
-    Base.prepare(session.bind, reflect=True)
-    DataChunkSummary = Base.classes.data_chunk_summary
     print("about to query datasets")
     # Query all datasets
     datasets = session.query(Dataset).all()
