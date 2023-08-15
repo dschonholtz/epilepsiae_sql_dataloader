@@ -5,12 +5,16 @@ from epilepsiae_sql_dataloader.models.Sample import Sample
 from epilepsiae_sql_dataloader.models.Seizures import Seizure
 from epilepsiae_sql_dataloader.models.LoaderTables import Dataset, Patient, DataChunk
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
+from sqlalchemy.ext.automap import automap_base
 
 
 from sqlalchemy import func
 
 
 def get_data_summary(session):
+    Base = automap_base()
+    Base.prepare(session.bind, reflect=True)
+    DataChunkSummary = Base.classes.data_chunk_summary
     print("about to query datasets")
     # Query all datasets
     datasets = session.query(Dataset).all()
@@ -27,12 +31,12 @@ def get_data_summary(session):
             # Query data chunk counts by data_type and seizure_state
             data_chunk_counts = (
                 session.query(
-                    DataChunk.data_type,
-                    DataChunk.seizure_state,
-                    func.count(DataChunk.id).label("count"),
+                    DataChunkSummary.data_type,
+                    DataChunkSummary.seizure_state,
+                    func.count(DataChunkSummary.id).label("count"),
                 )
-                .filter(DataChunk.patient_id == patient.id)
-                .group_by(DataChunk.data_type, DataChunk.seizure_state)
+                .filter(DataChunkSummary.patient_id == patient.id)
+                .group_by(DataChunkSummary.data_type, DataChunkSummary.seizure_state)
                 .all()
             )
             print(f"queried data chunks for patient {patient.id}")
