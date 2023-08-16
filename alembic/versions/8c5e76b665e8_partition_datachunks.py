@@ -24,24 +24,53 @@ def upgrade():
     op.execute(
         """
         CREATE TABLE data_chunks_partitioned (
-            id INTEGER PRIMARY KEY,
+            id INTEGER,
             patient_id INTEGER REFERENCES patients(id),
             seizure_state INTEGER,
             data_type SMALLINT,
-            data BYTEA
-        ) PARTITION BY LIST (seizure_state);
+            data BYTEA,
+            PRIMARY KEY (id, seizure_state, data_type)
+        ) PARTITION BY LIST (seizure_state, data_type);
     """
     )
 
-    # Create partitions for different seizure states
+    # Create partitions for different seizure states and data types
+    # You would need to create a partition for each combination
     op.execute(
-        "CREATE TABLE data_chunks_partitioned_0 PARTITION OF data_chunks_partitioned FOR VALUES IN (0);"
+        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (0, 0);"
     )
     op.execute(
-        "CREATE TABLE data_chunks_partitioned_1 PARTITION OF data_chunks_partitioned FOR VALUES IN (1);"
+        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (0, 1);"
     )
     op.execute(
-        "CREATE TABLE data_chunks_partitioned_2 PARTITION OF data_chunks_partitioned FOR VALUES IN (2);"
+        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (0, 2);"
+    )
+    op.execute(
+        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (0, 3);"
+    )
+    op.execute(
+        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (1, 0);"
+    )
+    op.execute(
+        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (1, 1);"
+    )
+    op.execute(
+        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (1, 2);"
+    )
+    op.execute(
+        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (1, 3);"
+    )
+    op.execute(
+        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (2, 0);"
+    )
+    op.execute(
+        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (2, 1);"
+    )
+    op.execute(
+        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (2, 2);"
+    )
+    op.execute(
+        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (2, 3);"
     )
 
     # Migrate data from the original table to the new partitioned table
