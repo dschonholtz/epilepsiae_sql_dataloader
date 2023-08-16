@@ -20,7 +20,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade():
-    # Create main partitioned table
+    # Create main partitioned table by seizure_state
     op.execute(
         """
         CREATE TABLE data_chunks_partitioned (
@@ -30,48 +30,26 @@ def upgrade():
             data_type SMALLINT,
             data BYTEA,
             PRIMARY KEY (id, seizure_state, data_type)
-        ) PARTITION BY LIST (seizure_state, data_type);
-    """
+        ) PARTITION BY LIST (seizure_state);
+        """
     )
 
-    # Create partitions for different seizure states and data types
-    # You would need to create a partition for each combination
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (0, 0);"
-    )
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (0, 1);"
-    )
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (0, 2);"
-    )
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (0, 3);"
-    )
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (1, 0);"
-    )
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (1, 1);"
-    )
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (1, 2);"
-    )
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (1, 3);"
-    )
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (2, 0);"
-    )
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (2, 1);"
-    )
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_00 PARTITION OF data_chunks_partitioned FOR VALUES IN (2, 2);"
-    )
-    op.execute(
-        "CREATE TABLE data_chunks_partitioned_01 PARTITION OF data_chunks_partitioned FOR VALUES IN (2, 3);"
-    )
+    # Create first-level partitions for different seizure states
+    for i in range(3):  # Assuming seizure_state takes values 0, 1, 2
+        op.execute(
+            f"""
+            CREATE TABLE data_chunks_partitioned_{i} PARTITION OF data_chunks_partitioned FOR VALUES IN ({i})
+            PARTITION BY LIST (data_type);
+            """
+        )
+
+        # Create second-level partitions for different data types
+        for j in range(4):  # Assuming data_type takes values 0, 1, 2, 3
+            op.execute(
+                f"""
+                CREATE TABLE data_chunks_partitioned_{i}_{j} PARTITION OF data_chunks_partitioned_{i} FOR VALUES IN ({j});
+                """
+            )
 
     # Migrate data from the original table to the new partitioned table
     op.execute("INSERT INTO data_chunks_partitioned SELECT * FROM data_chunks;")
