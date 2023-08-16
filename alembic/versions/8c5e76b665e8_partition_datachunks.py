@@ -20,15 +20,20 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade():
-    op.create_table(
-        "data_chunks_partitioned",
-        Column("id", Integer, primary_key=True),
-        Column("patient_id", Integer, ForeignKey("patients.id")),
-        Column("seizure_state", Integer),
-        Column("data_type", SmallInteger),
-        Column("data", BYTEA),
+    # Create main partitioned table
+    op.execute(
+        """
+        CREATE TABLE data_chunks_partitioned (
+            id INTEGER PRIMARY KEY,
+            patient_id INTEGER REFERENCES patients(id),
+            seizure_state INTEGER,
+            data_type SMALLINT,
+            data BYTEA
+        ) PARTITION BY LIST (seizure_state);
+    """
     )
 
+    # Create partitions for different seizure states
     op.execute(
         "CREATE TABLE data_chunks_partitioned_0 PARTITION OF data_chunks_partitioned FOR VALUES IN (0);"
     )
@@ -39,8 +44,10 @@ def upgrade():
         "CREATE TABLE data_chunks_partitioned_2 PARTITION OF data_chunks_partitioned FOR VALUES IN (2);"
     )
 
+    # Migrate data from the original table to the new partitioned table
     op.execute("INSERT INTO data_chunks_partitioned SELECT * FROM data_chunks;")
 
+    # Rename original and new tables
     op.rename_table("data_chunks", "data_chunks_old")
     op.rename_table("data_chunks_partitioned", "data_chunks")
 
@@ -53,19 +60,10 @@ def upgrade():
 
 
 def downgrade():
-    # Step 1: Rename tables
-    op.execute(
-        """
-        ALTER TABLE data_chunks RENAME TO data_chunks_partitioned;
-        ALTER TABLE data_chunks_old RENAME TO data_chunks;
-    """
-    )
+    op.rename_table("data_chunks", "data_chunks_partitioned")
+    op.rename_table("data_chunks_old", "data_chunks")
 
-    # Step 2: Drop the new partitioned table
-    op.execute(
-        """
-        DROP TABLE data_chunks_partitioned;
-    """
-    )
-
-    # Note: The individual partition tables will be automatically dropped
+    op.drop_table("data_chunks_partitioned_0")
+    op.drop_table("data_chunks_partitioned_1")
+    op.drop_table("data_chunks_partitioned_2")
+    op.drop_table("data_chunks_partitioned")
