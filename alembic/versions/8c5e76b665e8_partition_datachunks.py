@@ -59,6 +59,10 @@ def upgrade():
     op.rename_table("data_chunks_partitioned", "data_chunks")
 
     # Recreate indexes if necessary
+    # Drop the old index
+    op.drop_index("idx_patient_seizure_data_type", table_name="data_chunks_old")
+
+    # Create new index for the new table
     op.create_index(
         "idx_patient_seizure_data_type",
         "data_chunks",
