@@ -23,8 +23,10 @@ def get_data_summary(session):
     for dataset in datasets:
         print(f"In dataset: {dataset.name}")
         print(f"Patients are: {dataset.patients}")
-
+        count = 0
         for patient in dataset.patients:
+            if count < 15:
+                continue
             patient_summary = {"id": patient.id, "data_chunks": {}}
             print(f"about to query data chunks for patient {patient.id}")
 
@@ -48,10 +50,10 @@ def get_data_summary(session):
                     f"  data_type: {data_type}, seizure_state: {seizure_state}, count: {count}"
                 )
 
-            print(f"about to query seizures for patient {patient.id}")
-            print(f"Seizures are: {patient.seizures}")
-            for seizure in patient.seizures:
-                print(f"  seizure: {seizure.onset}, {seizure.offset}")
+            # print(f"about to query seizures for patient {patient.id}")
+            # print(f"Seizures are: {patient.seizures}")
+            # for seizure in patient.seizures:
+            #     print(f"  seizure: {seizure.onset}, {seizure.offset}")
 
 
 @click.command()

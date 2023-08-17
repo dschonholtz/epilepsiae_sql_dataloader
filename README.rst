@@ -173,3 +173,41 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 .. _Cookiecutter: https://github.com/audreyr/cookiecutter
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
+
+
+
+To optimize the query. The next step is probably to partition the table:
+
+1. **Modify the raw SQL to create the partitioned table and partitions based on `data_type`:**
+
+```python
+# Creating the partitioned table by data_type
+session.execute(text("""
+    CREATE TABLE data_chunks (
+        id INTEGER PRIMARY KEY,
+        patient_id INTEGER REFERENCES patients(id),
+        seizure_state INTEGER,
+        data_type SMALLINT NOT NULL,
+        data BYTEA
+    ) PARTITION BY LIST (data_type)
+"""))
+
+# Creating the partitions for specific values of data_type
+session.execute(text("CREATE TABLE data_chunks_ieeg PARTITION OF data_chunks FOR VALUES IN (0)"))
+session.execute(text("CREATE TABLE data_chunks_ecg PARTITION OF data_chunks FOR VALUES IN (1)"))
+session.execute(text("CREATE TABLE data_chunks_ekg PARTITION OF data_chunks FOR VALUES IN (2)"))
+session.execute(text("CREATE TABLE data_chunks_eeg PARTITION OF data_chunks FOR VALUES IN (3)"))
+```
+
+2. **Create indexes for the individual partitions if needed:**
+
+```python
+session.execute(text("CREATE INDEX idx_data_chunks_ieeg ON data_chunks_ieeg (patient_id, seizure_state, data_type)"))
+session.execute(text("CREATE INDEX idx_data_chunks_ecg ON data_chunks_ecg (patient_id, seizure_state, data_type)"))
+session.execute(text("CREATE INDEX idx_data_chunks_ekg ON data_chunks_ekg (patient_id, seizure_state, data_type)"))
+session.execute(text("CREATE INDEX idx_data_chunks_eeg ON data_chunks_eeg (patient_id, seizure_state, data_type)"))
+```
+
+By partitioning on `data_type`, you separate the data into distinct physical structures based on the `data_type` value. When a query is executed against the `data_chunks` table and includes a filter on `data_type`, the database engine can quickly locate the relevant partition, potentially improving query performance.
+
+As always, be sure to test this change thoroughly in a non-production environment to ensure that it meets your needs and doesn't negatively impact other aspects of your application or database. Carefully consider the choice of partitioning column and strategy in the context of your specific data, queries, and database version.
