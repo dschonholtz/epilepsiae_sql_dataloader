@@ -25,6 +25,7 @@ def get_data_summary(session):
         print(f"Patients are: {dataset.patients}")
         count = 0
         for patient in dataset.patients:
+            count += 1
             if count < 15:
                 continue
             patient_summary = {"id": patient.id, "data_chunks": {}}
