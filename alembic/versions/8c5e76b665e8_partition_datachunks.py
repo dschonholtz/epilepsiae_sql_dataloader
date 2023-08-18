@@ -57,6 +57,7 @@ def upgrade():
     # Rename original and new tables
     op.rename_table("data_chunks", "data_chunks_old")
     op.rename_table("data_chunks_partitioned", "data_chunks")
+    op.execute("DROP TABLE data_chunks_old;")
 
     # Recreate indexes if necessary
     # Drop the old index
