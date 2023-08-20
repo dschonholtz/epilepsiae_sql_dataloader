@@ -29,7 +29,7 @@ def upgrade():
         seizure_state INTEGER,
         data_type SMALLINT,
         data BYTEA,
-        PRIMARY KEY (id, seizure_state, data_type)
+        PRIMARY KEY (id, patient_id, seizure_state, data_type)
     ) PARTITION BY LIST (patient_id);
     """
     )
