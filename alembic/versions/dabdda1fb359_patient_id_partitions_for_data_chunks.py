@@ -37,7 +37,9 @@ def upgrade():
     # Get all patient_ids from the patient_ids table
     connection = op.get_bind()
     result = connection.execute(text("SELECT id FROM patients;"))
-    print(result[0])
+    for row in result:
+        print(row)
+        break
     patient_ids = [row["id"] for row in result]
 
     # Create first-level partitions for different patient_ids
