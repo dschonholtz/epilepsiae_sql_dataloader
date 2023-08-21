@@ -320,9 +320,16 @@ def main(dir):
                 "pat_11502",
                 "pat_109602",
                 "pat_26402",
-                "pat_21602",
+                "pat_56502",
+                "pat_38402",
+                "pat_25302",
+                "pat_92202",
+                "pat_27302",
+                "pat_59002",
+                "pat_1308903",
+                "pat_63502",
+                "pat_1324503",
             ]:
-                # TODO WE HAVE ADDED EVERYONE UP TO 108402 not inclusive
                 continue
             # Extract the patient ID
             pat_id = int(item.split("_")[1])

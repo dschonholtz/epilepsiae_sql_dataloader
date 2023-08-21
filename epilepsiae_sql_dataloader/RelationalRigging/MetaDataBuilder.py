@@ -303,26 +303,56 @@ class MetaDataBuilder(object):
 
 @click.command()
 @click.option(
-    "--directories",
-    multiple=True,
-    default=["/mnt/wines/intra/original_data/inv"],
-    help="Directories to hunt for.",
+    "--directory",
+    help="Directory to load patient data from.",
 )
 @click.option("--engine-str", default=ENGINE_STR, help="Engine string for postgreSQL.")
 @click.option("--drop-tables", is_flag=True, help="Drop all previous tables.")
-def main(directories, engine_str, drop_tables):
+@click.option("--patient-id", type=int, help="Patient ID to add seizure data to.")
+@click.option(
+    "--seizure-file",
+    type=str,
+    help="Path to the seizure file for a specific patient.",
+)
+def main(directory, engine_str, drop_tables, patient_id, seizure_file):
     """Console script for epilepsiae_sql_dataloader."""
-    if len(directories) > 1:
-        raise ValueError("Only one directory is supported at this time.")
+
+    # Check if the user wants to add seizure data to a specific patient
+    if patient_id is not None or seizure_file is not None:
+        if patient_id is None or seizure_file is None:
+            raise ValueError(
+                "Both --patient-id and --seizure-file must be provided together."
+            )
+        if directory is not None or drop_tables:
+            raise ValueError(
+                "When adding seizure data to a specific patient, only --patient-id and --seizure-file should be provided."
+            )
+        loader = MetaDataBuilder(engine_str)
+        data = loader.read_seizure_data(seizure_file)
+        loader.load_seizure_data_to_db(data, patient_id)
+        return 0
+
+    # Check if the user wants to drop tables
     if drop_tables:
-        engine = create_engine(engine_str)
-        Base.metadata.drop_all(engine)
-        Base.metadata.create_all(engine)
+        confirmation = click.confirm(
+            "Are you sure you want to drop all tables? This action is irreversible."
+        )
+        if confirmation:
+            engine = create_engine(engine_str)
+            Base.metadata.drop_all(engine)
+            Base.metadata.create_all(engine)
+        else:
+            click.echo("Operation canceled.")
+            return 0
 
     loader = MetaDataBuilder(engine_str)
-    loader.start(directories)
+    loader.start(directory)
 
     return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
 
 
 if __name__ == "__main__":

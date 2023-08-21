@@ -51,10 +51,10 @@ def get_data_summary(session):
                     f"  data_type: {data_type}, seizure_state: {seizure_state}, count: {count}"
                 )
 
-            # print(f"about to query seizures for patient {patient.id}")
-            # print(f"Seizures are: {patient.seizures}")
-            # for seizure in patient.seizures:
-            #     print(f"  seizure: {seizure.onset}, {seizure.offset}")
+            print(f"about to query seizures for patient {patient.id}")
+            print(f"Seizures are: {patient.seizures}")
+            for seizure in patient.seizures:
+                print(f"  seizure: {seizure.onset}, {seizure.offset}")
 
 
 @click.command()

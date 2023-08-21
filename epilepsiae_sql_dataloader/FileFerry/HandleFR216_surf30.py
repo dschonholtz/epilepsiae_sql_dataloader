@@ -41,6 +41,7 @@ special_seizure_list = """
 
 
 def main():
+    global special_seizure_list
     # scp the above text file to the server
     # write the text to a file
     remote_dir = Path(base_remote_dir) / "surf30"
@@ -48,6 +49,7 @@ def main():
 
     # write the file locally
     with open("seizure_list", "w") as f:
+        special_seizure_list = special_seizure_list.replace("\t", " ")
         f.write(special_seizure_list)
 
     remote_path = f"{username}@{server_ip}:{remote_dir}/{remote_patient_dir}"
