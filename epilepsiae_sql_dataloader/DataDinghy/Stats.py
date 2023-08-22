@@ -19,6 +19,7 @@ def get_data_summary(session):
     # Query all datasets
     datasets = session.query(Dataset).all()
     print("queried datasets")
+    grand_total = 0
 
     for dataset in datasets:
         print(f"In dataset: {dataset.name}")
@@ -50,18 +51,15 @@ def get_data_summary(session):
                 print(
                     f"  data_type: {data_type}, seizure_state: {seizure_state}, count: {count}"
                 )
+                grand_total += count
 
             print(f"about to query seizures for patient {patient.id}")
             print(f"Seizures are: {patient.seizures}")
             for seizure in patient.seizures:
                 print(f"  seizure: {seizure.onset}, {seizure.offset}")
 
-            # total up all of the data chunks to give a master count for everything.
-            total = 0
-            for data_type, seizure_state in patient_summary["data_chunks"]:
-                total += patient_summary["data_chunks"][(data_type, seizure_state)]
-
-            print(f"total data chunks: {total}")
+    # total up all of the data chunks to give a master count for everything.
+    print(f"Grand total: {grand_total}")
 
 
 @click.command()
