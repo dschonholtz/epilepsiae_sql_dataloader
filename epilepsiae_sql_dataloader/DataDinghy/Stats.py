@@ -56,6 +56,13 @@ def get_data_summary(session):
             for seizure in patient.seizures:
                 print(f"  seizure: {seizure.onset}, {seizure.offset}")
 
+            # total up all of the data chunks to give a master count for everything.
+            total = 0
+            for data_type, seizure_state in patient_summary["data_chunks"]:
+                total += patient_summary["data_chunks"][(data_type, seizure_state)]
+
+            print(f"total data chunks: {total}")
+
 
 @click.command()
 @click.option(
