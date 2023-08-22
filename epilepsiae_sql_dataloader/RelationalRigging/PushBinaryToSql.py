@@ -250,6 +250,8 @@ class BinaryToSql:
         bad_binaries = 0
 
         for i, sample in enumerate(samples):
+            if bad_binaries > 5:
+                raise ValueError("Too many bad binaries")
             with session_scope(self.engine_str) as session:
                 # Load binary data
                 print(f"Handling sample: {i} of {len(samples)}")
@@ -262,6 +264,7 @@ class BinaryToSql:
                     # we don't wan tto stop the whole process if one sample is bad.
                     print(e)
                     bad_binaries += 1
+                    session.rollback()
                     continue
 
                 try:
@@ -273,6 +276,7 @@ class BinaryToSql:
                     print(f"Error downsampling binary data for sample: {sample}")
                     print(e)
                     bad_binaries += 1
+                    session.rollback()
                     continue
 
                 try:
@@ -286,6 +290,7 @@ class BinaryToSql:
                     )
                     print(e)
                     bad_binaries += 1
+                    session.rollback()
                     continue
         print("Bad Binaries: ", bad_binaries)
 
