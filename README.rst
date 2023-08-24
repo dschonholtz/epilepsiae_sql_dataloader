@@ -211,3 +211,13 @@ session.execute(text("CREATE INDEX idx_data_chunks_eeg ON data_chunks_eeg (patie
 By partitioning on `data_type`, you separate the data into distinct physical structures based on the `data_type` value. When a query is executed against the `data_chunks` table and includes a filter on `data_type`, the database engine can quickly locate the relevant partition, potentially improving query performance.
 
 As always, be sure to test this change thoroughly in a non-production environment to ensure that it meets your needs and doesn't negatively impact other aspects of your application or database. Carefully consider the choice of partitioning column and strategy in the context of your specific data, queries, and database version.
+
+
+
+TODO
+----
+
+1. Update readme for out of date info
+2. Add comprehensive guide for adding new dataset
+3. Add comments to PyTorch Dataset describing seizure states and data types 
+4. Clean up alembic stuff/make sure you can instantiate tables from scratch with correct partitions etc

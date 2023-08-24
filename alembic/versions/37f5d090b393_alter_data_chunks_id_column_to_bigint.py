@@ -29,13 +29,14 @@ def upgrade():
     # Get all patient_ids from the patients table
     connection = op.get_bind()
     result = connection.execute(text("SELECT id FROM patients;"))
-    patient_ids = [row[0] for row in result]
+    # patient_ids = [row[0] for row in result]
 
     # Alter each partition column type to BIGINT
-    for pid in patient_ids:
+    for row in result:
+        patient_id = row[0]
         for i in range(3):
             for j in range(4):
-                partition_name = f"data_chunks_new_{pid}_{i}_{j}"
+                partition_name = f"data_chunks_new_{patient_id}_{i}_{j}"
                 op.alter_column(partition_name, "id", type_=sa.BigInteger())
 
 
