@@ -1,0 +1,6 @@
+venv/
+tests/
+docs
+.git
+.github
+*.egg-info
