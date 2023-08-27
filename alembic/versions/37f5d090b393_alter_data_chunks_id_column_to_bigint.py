@@ -26,26 +26,6 @@ def upgrade():
     # Adjust the sequence to return BIGINT values
     op.execute("ALTER SEQUENCE data_chunks_id_seq AS BIGINT;")
 
-    # Get all patient_ids from the patients table
-    connection = op.get_bind()
-    result = connection.execute(text("SELECT id FROM patients;"))
-    # patient_ids = [row[0] for row in result]
-
-    for row in result:
-        patient_id = row[0]
-        for i in range(3):
-            for j in range(4):
-                partition_name = f"data_chunks_new_{patient_id}_{i}_{j}"
-
-                # Detach the partition
-                op.execute(f"ALTER TABLE {partition_name} NO INHERIT data_chunks;")
-
-                # Alter the column type
-                op.alter_column(partition_name, "id", type_=sa.BigInteger())
-
-                # Reattach the partition
-                op.execute(f"ALTER TABLE {partition_name} INHERIT data_chunks;")
-
 
 def downgrade():
     pass
