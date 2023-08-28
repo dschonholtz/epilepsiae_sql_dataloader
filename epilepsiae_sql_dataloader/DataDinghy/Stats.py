@@ -23,13 +23,10 @@ def get_data_summary(session):
 
     for dataset in datasets:
         print(f"In dataset: {dataset.name}")
-        print(f"Patients are: {dataset.patients}")
-        count = 0
+        # print(f"Patients are: {dataset.patients}")
+        patient_count = 0
         for patient in dataset.patients:
-            count += 1
-            if count < 15:
-                continue
-            patient_summary = {"id": patient.id, "data_chunks": {}}
+            patient_count += 1
             print(f"about to query data chunks for patient {patient.id}")
 
             # Query data chunk counts by data_type and seizure_state
@@ -47,19 +44,19 @@ def get_data_summary(session):
             print(f"patient {patient.id} has {len(data_chunk_counts)} data chunks")
 
             for data_type, seizure_state, count in data_chunk_counts:
-                patient_summary["data_chunks"][(data_type, seizure_state)] = count
                 print(
                     f"  data_type: {data_type}, seizure_state: {seizure_state}, count: {count}"
                 )
                 grand_total += count
 
-            print(f"about to query seizures for patient {patient.id}")
-            print(f"Seizures are: {patient.seizures}")
-            for seizure in patient.seizures:
-                print(f"  seizure: {seizure.onset}, {seizure.offset}")
+            # print(f"about to query seizures for patient {patient.id}")
+            # print(f"Seizures are: {patient.seizures}")
+            # for seizure in patient.seizures:
+            #     print(f"  seizure: {seizure.onset}, {seizure.offset}")
 
     # total up all of the data chunks to give a master count for everything.
     print(f"Grand total: {grand_total}")
+    print(f"Total number of patients was: {patient_count}")
 
 
 @click.command()
