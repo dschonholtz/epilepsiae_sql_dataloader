@@ -1,5 +1,6 @@
 from sqlalchemy import create_engine, not_
 from sqlalchemy.orm import sessionmaker
+from epilepsiae_sql_dataloader.models.Sample import Sample
 from epilepsiae_sql_dataloader.models.LoaderTables import DataChunk
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
 
