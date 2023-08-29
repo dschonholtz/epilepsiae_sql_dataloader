@@ -1,6 +1,6 @@
 from sqlalchemy import create_engine, not_, exists
 from sqlalchemy.orm import sessionmaker
-from epilepsiae_sql_dataloader.models.LoaderTables import DataChunk
+from epilepsiae_sql_dataloader.models.LoaderTables import DataChunk, Patient
 from epilepsiae_sql_dataloader.models.Sample import (
     Sample,
 )  # I assume this is the Patients table
@@ -37,7 +37,7 @@ def get_non_matching_patient_ids(engine_string=ENGINE_STR):
     try:
         # Query distinct patient IDs from the Patients table
         all_patient_ids = (
-            session.query(Sample.patient_id).distinct().all()
+            session.query(Patient.id).distinct().all()
         )  # I assume Sample represents the Patients table
 
         for pid in all_patient_ids:
