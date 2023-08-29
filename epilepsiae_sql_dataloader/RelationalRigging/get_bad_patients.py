@@ -1,7 +1,9 @@
-from sqlalchemy import create_engine, not_
+from sqlalchemy import create_engine, not_, exists
 from sqlalchemy.orm import sessionmaker
-from epilepsiae_sql_dataloader.models.Sample import Sample
 from epilepsiae_sql_dataloader.models.LoaderTables import DataChunk
+from epilepsiae_sql_dataloader.models.Sample import (
+    Sample,
+)  # I assume this is the Patients table
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
 
 # List of patient strings
@@ -25,21 +27,29 @@ patient_ids = [int(pat.split("_")[1]) for pat in patient_strings]
 
 
 def get_non_matching_patient_ids(engine_string=ENGINE_STR):
-    """Get patient IDs from DataChunk table that don't match the specified list."""
+    """Get patient IDs from Patients table that have DataChunks and don't match the specified list."""
     engine = create_engine(engine_string)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = SessionLocal()
 
-    try:
-        # Query DataChunks for patient IDs not in the list
-        non_matching_ids = (
-            session.query(DataChunk.patient_id)
-            .distinct()
-            .filter(not_(DataChunk.patient_id.in_(patient_ids)))
-            .all()
-        )
+    non_matching_ids = []
 
-        return [id_[0] for id_ in non_matching_ids]
+    try:
+        # Query distinct patient IDs from the Patients table
+        all_patient_ids = (
+            session.query(Sample.patient_id).distinct().all()
+        )  # I assume Sample represents the Patients table
+
+        for pid in all_patient_ids:
+            # Check if there's at least one corresponding row in the DataChunk table
+            has_data_chunk = session.query(
+                exists().where(DataChunk.patient_id == pid[0])
+            ).scalar()
+
+            if has_data_chunk and pid[0] not in patient_ids:
+                non_matching_ids.append(pid[0])
+
+        return non_matching_ids
 
     except Exception as e:
         print(f"An error occurred: {e}")
@@ -51,5 +61,5 @@ def get_non_matching_patient_ids(engine_string=ENGINE_STR):
 if __name__ == "__main__":
     non_matching_ids = get_non_matching_patient_ids()
     print(
-        f"Patient IDs in DataChunk that don't match the specified list: {non_matching_ids}"
+        f"Patient IDs in Patients table with DataChunks that don't match the specified list: {non_matching_ids}"
     )
