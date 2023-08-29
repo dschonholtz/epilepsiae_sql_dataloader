@@ -318,8 +318,7 @@ def main(dir):
     pat_dirs = os.listdir(dir)
     for i, item in enumerate(pat_dirs):
         if os.path.isdir(os.path.join(dir, item)) and item.startswith("pat_"):
-            # pat_21602 seizures aren't loading! We'll have to fix that. and we are skipping it
-            # the others have already been done.
+            # Patients in this list have already been done.
             if item in [
                 "pat_81802",
                 "pat_11502",
@@ -333,7 +332,6 @@ def main(dir):
                 "pat_59002",
                 "pat_1308903",
                 "pat_63502",
-                "pat_1324503",
             ]:
                 continue
             # Extract the patient ID
