@@ -167,7 +167,7 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 
 
 Adding a new Dataset
-----
+--------------------
 
 There are two possible methods. 1. Create a new MetaDataBuilder file, and PushBinaryToSql file for your new dataset that relies on the same underlying
 database structure and 2. Convert your data into the same format as the existing datasets and use the existing MetaDataBuilder and PushBinaryToSql files.
@@ -175,7 +175,7 @@ database structure and 2. Convert your data into the same format as the existing
 Generally, I would strongly recomend method 2.
 
 Method 1: Create a new MetaDataBuilder file, and PushBinaryToSql file for your new dataset that relies on the same underlying
-----
+-------------------------------------------------------------------------------------------------------------------------------
 
 To add a new dataset you will have to do the following:
 1. In RelationalRigging create a new MetaDataBuilder.py equivilant that will populate your metadata tables.
@@ -212,48 +212,60 @@ This is fairly complicated and involves pulling electrode labels, and channels a
 
 
 Method 2: Convert your data into the same format as the existing datasets and use the existing MetaDataBuilder and PushBinaryToSql files.
-----
+------------------------------------------------------------------------------------------------------------------------------------------
 
 The existing format is fairly simple:
 
-- DATASET_NAME
-|--- PATIENT_ID  # formatted as pat_####
-|--- --- seizure_list
-|--- --- ADM_ID # formatted as adm_####
-|--- --- --- REC_ID # formatted as rec_####
-|--- --- --- --- #####_####.data
-|--- --- --- --- #####_####.head
+File Structure
+==============
+
+The dataset is organized in the following hierarchical structure::
+
+        DATASET_NAME/
+        ├── PATIENT_ID  # formatted as pat_####
+        │   ├── seizure_list
+        │   └── ADM_ID  # formatted as adm_####
+        │       └── REC_ID  # formatted as rec_####
+        │           ├── #####_####.data
+        │           └── #####_####.head
+
 
 Where the seizurelists are formatted like this:
 
-```seizure_list
-# list of seizures of patient FR_139
-                
-# colums are tab-separated: 
-# onset offset onset_sample offset_sample
-2003-11-19 21:06:03.707031 2003-11-19 21:06:21.605469 542389 546971
 
-2003-11-24 19:23:38.166016 2003-11-24 19:27:03.941406 264277 369634
-```
+        # list of seizures of patient FR_139
+                        
+        # colums are tab-separated: 
+        # onset offset onset_sample offset_sample
+        2003-11-19 21:06:03.707031 2003-11-19 21:06:21.605469 542389 546971
+
+        2003-11-24 19:23:38.166016 2003-11-24 19:27:03.941406 264277 369634
+
 
 These should be tab delimitted but they are not, and they are assumed to just have spaces between the columns.
 You also only need the timestamps, the onset_sample and offset_sample can be dummy values as the values there are never used.
 
 The .head values look like this:
 
-```example.head
-start_ts=2008-12-01 19:45:39.000
-num_samples=3686400
-sample_freq=1024
-conversion_factor=0.179000
-num_channels=72
-elec_names=[HLA1,HLA2,HLA3,HLA4,HLA5,BFLA1,BFLA2,BFLA3,BFLA4,BFLA5,BFLA6,BFLA7,BFLA8,BFLA9,HLB1,HLB2,HLB3,HLB4,HLB5,BFLB1,BFLB2,BFLB3,BFLB4,BFLB5,BFLB6,BFLB7,BFLB8,BFLB9,HLC1,HLC2,HLC3,HLC4,HLC5,TPR1,TPR2,TPR3,TPR4,TPR5,HRA1,HRA2,HRA3,HRA4,HRA5,BFRA1,BFRA2,BFRA3,BFRA4,BFRA5,BFRA6,BFRA7,BFRA8,BFRA9,HRB1,HRB2,HRB3,HRB4,HRB5,HRC1,HRC2,HRC3,HRC4,HRC5,BFRB1,BFRB2,BFRB3,BFRB4,BFRB5,BFRB6,BFRB7,BFRB8,BFRB9,ECG]
-pat_id=107302
-adm_id=1073102
-rec_id=107300102
-duration_in_sec=3600
-sample_bytes=2
-```
+Head File Format
+================
+
+The `.head` file contains metadata associated with each recording. The file is structured as key-value pairs.
+
+Here's an example::
+
+    start_ts=2008-12-01 19:45:39.000
+    num_samples=3686400
+    sample_freq=1024
+    conversion_factor=0.179000
+    num_channels=72
+    elec_names=[HLA1,HLA2,HLA3,HLA4,HLA5,BFLA1,...,BFRB8,BFRB9,ECG]
+    pat_id=107302
+    adm_id=1073102
+    rec_id=107300102
+    duration_in_sec=3600
+    sample_bytes=2
+
 
 You do not need conversion_factor, but everything else is required. Sample_bytes is just the number of bytes the integers are used to represent data in the corresponding .data file.
 The electrode names must be included and are used to differentiate ECG, EKG, EEG and IEEG. To learn and modify what is used for what, see process_data_types in PushBinaryToSql.py
