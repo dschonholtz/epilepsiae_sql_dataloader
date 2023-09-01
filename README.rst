@@ -174,8 +174,8 @@ database structure and 2. Convert your data into the same format as the existing
 
 Generally, I would strongly recomend method 2.
 
-Method 1: Create a new MetaDataBuilder file, and PushBinaryToSql file for your new dataset that relies on the same underlying
--------------------------------------------------------------------------------------------------------------------------------
+Method 1: Create a new MetaDataBuilder file, and PushBinaryToSql file for your new dataset that relies on the same underlying database structure
+-------------------------------------------------------------------------------------------------------------------------------------------------
 
 To add a new dataset you will have to do the following:
 1. In RelationalRigging create a new MetaDataBuilder.py equivilant that will populate your metadata tables.
