@@ -212,6 +212,7 @@ This is fairly complicated and involves pulling electrode labels, and channels a
 
 
 Method 2: Convert your data into the same format as the existing datasets and use the existing MetaDataBuilder and PushBinaryToSql files.
+----
 
 The existing format is fairly simple:
 
