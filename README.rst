@@ -260,3 +260,5 @@ The electrode names must be included and are used to differentiate ECG, EKG, EEG
 
 Finally, the .data files are just binary files of integers. The integers are the raw data values.
 It must be of the shape num_channels x num_samples. The integers are assumed to be 16 bit signed integers, if the sample_bytes is 2.
+
+Once your data is in this format, you can run the MetaDataBuilder and PushBinaryToSql files as is with the new directories specified.
