@@ -218,11 +218,11 @@ The existing format is fairly simple:
 
 - DATASET_NAME
 |--- PATIENT_ID  # formatted as pat_####
-|---|--- seizure_list
-|---|--- ADM_ID # formatted as adm_####
-|---|---|--- REC_ID # formatted as rec_####
-|---|---|---|--- #####_####.data
-|---|---|---|--- #####_####.head
+|--- --- seizure_list
+|--- --- ADM_ID # formatted as adm_####
+|--- --- --- REC_ID # formatted as rec_####
+|--- --- --- --- #####_####.data
+|--- --- --- --- #####_####.head
 
 Where the seizurelists are formatted like this:
 
