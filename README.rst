@@ -73,7 +73,7 @@ This should be fairly easy. We cloned the repository onto our server and then ra
 This sets up and instantiates a postgres server with the tables defined in epilepsiae_sql_dataloader/models
 
 
-1. Add metadata to the database
+2. Add metadata to the database
 
 This will add all of the seizure and patient/sample metadata to the database. This way we can quickly query when seizures happened for what patients in what datasets without having to do raw file navigation.
 
@@ -96,25 +96,16 @@ This does the following:
 Notice, you may want to look at the RelationalRiggingMetaDataBuilder.py file to figure out exactly what options you want.
 
 
-WORK IN PROGRESS DO NOT DO ANY MATERIALIZED VIEW STUFF YET.
-1. Create materialized Views.
+3. Index and partition the database.
 
-The tables are indexed already. But to make the queries really fast, we need to leverage materialized views.
+If you look in alembic/versions you'll find a variety of migration scripts
+Unfortunately, several of the changes described there have already been added to the DB.
+To get the DB into a high performance state you will have to write a new alembic script, or a new SQL script that indexes and partitions the DB.
 
-To create them, and to refresh them if you update the tables, you can run the following command:
+I believe that: alembic/versions/dabdda1fb359_patient_id_partitions_for_data_chunks.py does everything you need except that the data_chunk id 
+is a normal int when you will need big ints to work with billions of records.
 
-```
-python epilepsiae_sql_dataloader/RelationalRigging/CreateMaterializedViews.py
-```
-
-And if you have inserted a bunch of data after creating the views. You can refresh them with:
-
-```
-python epilepsiae_sql_dataloader/RelationalRigging/RefreshMaterializedViews.py
-```
-
-
-1. Add the binary data to the database
+4. Add the binary data to the database
 
 Assuming you are still in the virtual environment you can run the following command:
 
@@ -175,49 +166,96 @@ This package was created with Cookiecutter_ and the `audreyr/cookiecutter-pypack
 .. _`audreyr/cookiecutter-pypackage`: https://github.com/audreyr/cookiecutter-pypackage
 
 
-
-To optimize the query. The next step is probably to partition the table:
-
-1. **Modify the raw SQL to create the partitioned table and partitions based on `data_type`:**
-
-```python
-# Creating the partitioned table by data_type
-session.execute(text("""
-    CREATE TABLE data_chunks (
-        id INTEGER PRIMARY KEY,
-        patient_id INTEGER REFERENCES patients(id),
-        seizure_state INTEGER,
-        data_type SMALLINT NOT NULL,
-        data BYTEA
-    ) PARTITION BY LIST (data_type)
-"""))
-
-# Creating the partitions for specific values of data_type
-session.execute(text("CREATE TABLE data_chunks_ieeg PARTITION OF data_chunks FOR VALUES IN (0)"))
-session.execute(text("CREATE TABLE data_chunks_ecg PARTITION OF data_chunks FOR VALUES IN (1)"))
-session.execute(text("CREATE TABLE data_chunks_ekg PARTITION OF data_chunks FOR VALUES IN (2)"))
-session.execute(text("CREATE TABLE data_chunks_eeg PARTITION OF data_chunks FOR VALUES IN (3)"))
-```
-
-2. **Create indexes for the individual partitions if needed:**
-
-```python
-session.execute(text("CREATE INDEX idx_data_chunks_ieeg ON data_chunks_ieeg (patient_id, seizure_state, data_type)"))
-session.execute(text("CREATE INDEX idx_data_chunks_ecg ON data_chunks_ecg (patient_id, seizure_state, data_type)"))
-session.execute(text("CREATE INDEX idx_data_chunks_ekg ON data_chunks_ekg (patient_id, seizure_state, data_type)"))
-session.execute(text("CREATE INDEX idx_data_chunks_eeg ON data_chunks_eeg (patient_id, seizure_state, data_type)"))
-```
-
-By partitioning on `data_type`, you separate the data into distinct physical structures based on the `data_type` value. When a query is executed against the `data_chunks` table and includes a filter on `data_type`, the database engine can quickly locate the relevant partition, potentially improving query performance.
-
-As always, be sure to test this change thoroughly in a non-production environment to ensure that it meets your needs and doesn't negatively impact other aspects of your application or database. Carefully consider the choice of partitioning column and strategy in the context of your specific data, queries, and database version.
-
-
-
-TODO
+Adding a new Dataset
 ----
 
-1. Update readme for out of date info
-2. Add comprehensive guide for adding new dataset
-3. Add comments to PyTorch Dataset describing seizure states and data types 
-4. Clean up alembic stuff/make sure you can instantiate tables from scratch with correct partitions etc
+There are two possible methods. 1. Create a new MetaDataBuilder file, and PushBinaryToSql file for your new dataset that relies on the same underlying
+database structure and 2. Convert your data into the same format as the existing datasets and use the existing MetaDataBuilder and PushBinaryToSql files.
+
+Generally, I would strongly recomend method 2.
+
+Method 1: Create a new MetaDataBuilder file, and PushBinaryToSql file for your new dataset that relies on the same underlying
+----
+
+To add a new dataset you will have to do the following:
+1. In RelationalRigging create a new MetaDataBuilder.py equivilant that will populate your metadata tables.
+
+This will include the dataset, patients, and seizure information.
+
+I would copy the MetaDataBuilder.py file as is and adjust for your file structure.
+Then modify the read_sample_data function to read your data into those fields. That function already designates in the code what fields are actually
+required:
+
+            "start_ts",
+            "num_samples",
+            "sample_freq",
+            "num_channels",
+            "adm_id",
+            "rec_id",
+            "duration_in_sec",
+
+Most of these are self explanatory and really are required for proper data processing, except for adm_id and rec_id.
+
+Adm_id is not used anywhere currently and can be a static value for every record if you'd like. For our historic data, it is a cluster of recordings
+for a specific patient and if you wanted to query for recordingds in this group this column would allow that.
+
+Rec_id is the recording id. This is used to group several hours of consecutive records together. So to calculate seizures with respect to 
+where they are in a long recording across many diverse binary samples, this is important.
+
+Finally, there is the data_file column, not listed above as it is added later. This references the path to the raw binary.
+It is used to load the binary in the PushBinaryToSql code later. The path must be the absolute path here.
+
+2. In RelationalRigging create a new PushBinaryToSql.py equivilant that will populate your binary tables.
+
+This is fairly complicated and involves pulling electrode labels, and channels and assigning them accordingly.
+
+
+
+Method 2: Convert your data into the same format as the existing datasets and use the existing MetaDataBuilder and PushBinaryToSql files.
+
+The existing format is fairly simple:
+
+- DATASET_NAME
+|--- PATIENT_ID  # formatted as pat_####
+|---|--- seizure_list
+|---|--- ADM_ID # formatted as adm_####
+|---|---|--- REC_ID # formatted as rec_####
+|---|---|---|--- #####_####.data
+|---|---|---|--- #####_####.head
+
+Where the seizurelists are formatted like this:
+
+```seizure_list
+# list of seizures of patient FR_139
+                
+# colums are tab-separated: 
+# onset offset onset_sample offset_sample
+2003-11-19 21:06:03.707031 2003-11-19 21:06:21.605469 542389 546971
+
+2003-11-24 19:23:38.166016 2003-11-24 19:27:03.941406 264277 369634
+```
+
+These should be tab delimitted but they are not, and they are assumed to just have spaces between the columns.
+You also only need the timestamps, the onset_sample and offset_sample can be dummy values as the values there are never used.
+
+The .head values look like this:
+
+```example.head
+start_ts=2008-12-01 19:45:39.000
+num_samples=3686400
+sample_freq=1024
+conversion_factor=0.179000
+num_channels=72
+elec_names=[HLA1,HLA2,HLA3,HLA4,HLA5,BFLA1,BFLA2,BFLA3,BFLA4,BFLA5,BFLA6,BFLA7,BFLA8,BFLA9,HLB1,HLB2,HLB3,HLB4,HLB5,BFLB1,BFLB2,BFLB3,BFLB4,BFLB5,BFLB6,BFLB7,BFLB8,BFLB9,HLC1,HLC2,HLC3,HLC4,HLC5,TPR1,TPR2,TPR3,TPR4,TPR5,HRA1,HRA2,HRA3,HRA4,HRA5,BFRA1,BFRA2,BFRA3,BFRA4,BFRA5,BFRA6,BFRA7,BFRA8,BFRA9,HRB1,HRB2,HRB3,HRB4,HRB5,HRC1,HRC2,HRC3,HRC4,HRC5,BFRB1,BFRB2,BFRB3,BFRB4,BFRB5,BFRB6,BFRB7,BFRB8,BFRB9,ECG]
+pat_id=107302
+adm_id=1073102
+rec_id=107300102
+duration_in_sec=3600
+sample_bytes=2
+```
+
+You do not need conversion_factor, but everything else is required. Sample_bytes is just the number of bytes the integers are used to represent data in the corresponding .data file.
+The electrode names must be included and are used to differentiate ECG, EKG, EEG and IEEG. To learn and modify what is used for what, see process_data_types in PushBinaryToSql.py
+
+Finally, the .data files are just binary files of integers. The integers are the raw data values.
+It must be of the shape num_channels x num_samples. The integers are assumed to be 16 bit signed integers, if the sample_bytes is 2.
