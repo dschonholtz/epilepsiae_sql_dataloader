@@ -8,6 +8,27 @@ The way this file accomplishes that.
 Is by reading in an entire binary blob, finding the corresponding sample and seizure information
 Noting the exact sample now and after downsamping, downsampling, then breaking the data into 1 second chunks, then applying the seizure state
 info accordingly.
+
+about to query data chunks for patient 108402
+about to query data chunks for patient 62002
+about to query data chunks for patient 115002
+patient 115002 has 0 data chunks
+patient 107302 has 0 data chunks
+patient 107702 has 0 data chunks
+patient 58302 has 0 data chunks
+patient 54802 has 0 data chunks
+patient 86202 has 0 data chunks
+patient 91602 has 0 data chunks
+patient 95802 has 0 data chunks
+patient 1324503 has 0 data chunks
+patient 112502 has 0 data chunks
+patient 13902 has 0 data chunks
+patient 73202 has 0 data chunks
+patient 114602 has 0 data chunks
+patient 37502 has 0 data chunks
+patient 97002 has 0 data chunks
+patient 44202 has 0 data chunks
+
 """
 
 from epilepsiae_sql_dataloader.utils import session_scope, ENGINE_STR
@@ -319,21 +340,28 @@ def main(dir):
     for i, item in enumerate(pat_dirs):
         if os.path.isdir(os.path.join(dir, item)) and item.startswith("pat_"):
             # Patients in this list have already been done.
-            if item in [
-                "pat_81802",
-                "pat_11502",
-                "pat_109602",
-                "pat_26402",
-                "pat_56502",
-                "pat_38402",
-                "pat_25302",
-                "pat_92202",
-                "pat_27302",
-                "pat_59002",
-                "pat_1308903",
-                "pat_63502",
+            if item not in [
+                "pat_108402",
+                "pat_62002",
+                "pat_115002",
+                "pat_107302",
+                "pat_107702",
+                "pat_58302",
+                "pat_54802",
+                "pat_86202",
+                "pat_91602",
+                "pat_95802",
+                "pat_1324503",
+                "pat_112502",
+                "pat_13902",
+                "pat_73202",
+                "pat_114602",
+                "pat_37502",
+                "pat_97002",
+                "pat_44202",
             ]:
                 continue
+
             # Extract the patient ID
             pat_id = int(item.split("_")[1])
             click.echo(f"Processing patient ID: {pat_id}")
