@@ -72,6 +72,9 @@ class SeizureDataset(Dataset):
     def __getitem__(self, idx):
         # If buffer is empty or index out of range, fetch the next batch
         if not self.buffer or idx >= self.buffer_index:
+            print(
+                f"Fetching next batch buffer len: {len(self.buffer)} idx: {idx} buffer_idx:  {self.buffer_index}"
+            )
             self._fetch_next_batch()
 
         # Get the data chunk from the buffer
