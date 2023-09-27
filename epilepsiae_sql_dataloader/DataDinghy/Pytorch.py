@@ -51,7 +51,6 @@ class SeizureDataset(Dataset):
         print(f"total chunks: {self.total_chunks}")
 
     def _fetch_next_batch(self):
-        print("Fetching next batch")
         query = self.session.query(DataChunk).filter(
             DataChunk.patient_id == self.patient_id
         )
@@ -64,7 +63,6 @@ class SeizureDataset(Dataset):
         self.buffer = query.limit(self.batch_size).offset(self.buffer_index).all()
 
         self.buffer_index += self.batch_size
-        print("Done fetching next batch")
 
     def __len__(self):
         return self.total_chunks
