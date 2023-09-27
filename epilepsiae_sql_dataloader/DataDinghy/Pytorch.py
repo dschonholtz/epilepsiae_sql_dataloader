@@ -37,6 +37,7 @@ class SeizureDataset(Dataset):
         self.batch_size = batch_size
         self.buffer = []
         self.buffer_index = 0
+        self.patient_id = patient_id
 
         # Construct the query for counting rows matching the criteria
         query = session.query(DataChunk).filter(DataChunk.patient_id == patient_id)
@@ -51,7 +52,9 @@ class SeizureDataset(Dataset):
 
     def _fetch_next_batch(self):
         print("Fetching next batch")
-        query = self.session.query(DataChunk).filter(DataChunk.patient_id == patient_id)
+        query = self.session.query(DataChunk).filter(
+            DataChunk.patient_id == self.patient_id
+        )
         if self.seizure_states is not None:
             query = query.filter(DataChunk.seizure_state.in_(self.seizure_states))
         if self.data_types is not None:
