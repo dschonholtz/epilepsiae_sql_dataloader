@@ -64,6 +64,7 @@ class SeizureDataset(Dataset):
         return self.total_chunks
 
     def _fetch_next_batch(self):
+        print("Fetching next batch")
         start_idx = self.buffer_index
         end_idx = min(start_idx + self.batch_size, self.total_chunks)
 
@@ -73,6 +74,7 @@ class SeizureDataset(Dataset):
         )
 
         self.buffer_index += self.batch_size
+        print("Done fetching next batch")
 
     def __getitem__(self, idx):
         # If buffer is empty or index out of range, fetch the next batch
