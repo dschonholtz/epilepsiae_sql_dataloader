@@ -35,6 +35,8 @@ class SeizureDataset(Dataset):
         self.data_types = data_types
         self.transform = transform
         self.batch_size = batch_size
+        self.buffer = []
+        self.buffer_index = 0
         print(
             "About to do query. (This part takes a couple minutes then we can move at light speed)"
         )
@@ -61,12 +63,24 @@ class SeizureDataset(Dataset):
     def __len__(self):
         return self.total_chunks
 
-    def __getitem__(self, idx):
-        # Fetch the primary key for the desired index
-        data_chunk_id = self.data_chunk_ids[idx]
+    def _fetch_next_batch(self):
+        start_idx = self.buffer_index
+        end_idx = min(start_idx + self.batch_size, self.total_chunks)
 
-        # Query the corresponding data chunk by primary key
-        data_chunk = self.session.get(DataChunk, data_chunk_id)
+        batch_ids = self.data_chunk_ids[start_idx:end_idx]
+        self.buffer = (
+            self.session.query(DataChunk).filter(DataChunk.id.in_(batch_ids)).all()
+        )
+
+        self.buffer_index += self.batch_size
+
+    def __getitem__(self, idx):
+        # If buffer is empty or index out of range, fetch the next batch
+        if not self.buffer or idx >= self.buffer_index:
+            self._fetch_next_batch()
+
+        # Get the data chunk from the buffer
+        data_chunk = self.buffer[idx % self.batch_size]
 
         sample_data = {
             "data": data_chunk.data,
@@ -90,28 +104,28 @@ def train_torch_seizure_model(
     data_loader = DataLoader(seizure_dataset, batch_size=batch_size, shuffle=True)
 
     # Define a simple LSTM model
-    class SeizureClassifier(nn.Module):
-        def __init__(self, input_dim, hidden_dim):
-            super(SeizureClassifier, self).__init__()
-            self.embedding = nn.Embedding(input_dim, 16)
-            self.lstm = nn.LSTM(16, hidden_dim, batch_first=True)
-            self.fc = nn.Linear(hidden_dim, 1)
-            self.sigmoid = nn.Sigmoid()
+    # class SeizureClassifier(nn.Module):
+    #     def __init__(self, input_dim, hidden_dim):
+    #         super(SeizureClassifier, self).__init__()
+    #         self.embedding = nn.Embedding(input_dim, 16)
+    #         self.lstm = nn.LSTM(16, hidden_dim, batch_first=True)
+    #         self.fc = nn.Linear(hidden_dim, 1)
+    #         self.sigmoid = nn.Sigmoid()
 
-        def forward(self, x):
-            x = self.embedding(x)
-            x, _ = self.lstm(x)
-            x = self.fc(x[:, -1, :])
-            x = self.sigmoid(x)
-            return x
+    #     def forward(self, x):
+    #         x = self.embedding(x)
+    #         x, _ = self.lstm(x)
+    #         x = self.fc(x[:, -1, :])
+    #         x = self.sigmoid(x)
+    #         return x
 
-    # Assuming data is represented by integers in the range [0, 255]
-    model = SeizureClassifier(input_dim=256, hidden_dim=32)
-    model.to(DEVICE)
+    # # Assuming data is represented by integers in the range [0, 255]
+    # model = SeizureClassifier(input_dim=256, hidden_dim=32)
+    # model.to(DEVICE)
 
-    # Loss and optimizer
-    criterion = nn.BCELoss()
-    optimizer = torch.optim.Adam(model.parameters())
+    # # Loss and optimizer
+    # criterion = nn.BCELoss()
+    # optimizer = torch.optim.Adam(model.parameters())
 
     # Training loop
     for epoch in range(epochs):
@@ -121,24 +135,24 @@ def train_torch_seizure_model(
             i += 1
             if i % 100 == 0:
                 print(f"batch {i}")
-            data = torch.tensor(batch_data["data"], dtype=torch.long).to(DEVICE)
-            target = (
-                batch_data["seizure_state"]
-                .clone()
-                .detach()
-                .view(-1, 1)
-                .float()
-                .to(DEVICE)
-            )
+            # data = torch.tensor(batch_data["data"], dtype=torch.long).to(DEVICE)
+            # target = (
+            #     batch_data["seizure_state"]
+            #     .clone()
+            #     .detach()
+            #     .view(-1, 1)
+            #     .float()
+            #     .to(DEVICE)
+            # )
 
             # Forward pass
-            outputs = model(data)
-            loss = criterion(outputs, target)
+            # outputs = model(data)
+            # loss = criterion(outputs, target)
 
-            # Backward pass and optimization
-            optimizer.zero_grad()
-            loss.backward()
-            optimizer.step()
+            # # Backward pass and optimization
+            # optimizer.zero_grad()
+            # loss.backward()
+            # optimizer.step()
 
         print(f"Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}")
 
@@ -151,13 +165,12 @@ if __name__ == "__main__":
 
     # Create a session
     Session = sessionmaker(bind=engine)
-    session = Session()
+    with Session() as session:
+        # Datatypes:
+        # 0: ieeg
+        # 1: ecg
+        # 2: ekg
+        # 3: surface eeg
 
-    # Datatypes:
-    # 0: ieeg
-    # 1: ecg
-    # 2: ekg
-    # 3: surface eeg
-
-    # Train a seizure model
-    model = train_torch_seizure_model(session, epochs=1, data_types=[1])
+        # Train a seizure model
+        model = train_torch_seizure_model(session, epochs=1, data_types=[1])
