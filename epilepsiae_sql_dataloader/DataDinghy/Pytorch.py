@@ -61,6 +61,8 @@ class SeizureDataset(Dataset):
 
         # Fetch data using pagination
         self.buffer = query.limit(self.batch_size).offset(self.buffer_index).all()
+        if not self.buffer:
+            raise IndexError("Index out of range")
 
         self.buffer_index += self.batch_size
 
@@ -126,7 +128,7 @@ def train_torch_seizure_model(
         i = 0
         for batch_data in data_loader:
             i += 1
-            if i % 100 == 0:
+            if i % 5 == 0:
                 print(f"batch {i}")
             # data = torch.tensor(batch_data["data"], dtype=torch.long).to(DEVICE)
             # target = (
