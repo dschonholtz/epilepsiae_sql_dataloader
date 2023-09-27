@@ -67,7 +67,7 @@ class SeizureDataset(Dataset):
         start_idx = self.buffer_index
         end_idx = min(start_idx + self.batch_size, self.total_chunks)
 
-        batch_ids = self.data_chunk_ids[start_idx:end_idx]
+        batch_ids = [id_[0] for id_ in self.data_chunk_ids[start_idx:end_idx]]
         self.buffer = (
             self.session.query(DataChunk).filter(DataChunk.id.in_(batch_ids)).all()
         )
