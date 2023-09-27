@@ -74,9 +74,6 @@ class SeizureDataset(Dataset):
     def __getitem__(self, idx):
         # If buffer is empty or current position has reached the end of the buffer, fetch the next batch
         if not self.buffer or self.current_position_in_buffer >= len(self.buffer):
-            print(
-                f"Fetching next batch buffer len: {len(self.buffer)} idx: {idx} buffer_idx:  {self.buffer_index}"
-            )
             self._fetch_next_batch()
 
         # Get the data chunk from the buffer
@@ -134,7 +131,7 @@ def train_torch_seizure_model(
         i = 0
         for batch_data in data_loader:
             i += 1
-            if i % 5 == 0:
+            if i % 50 == 0:
                 print(f"batch {i}")
             # data = torch.tensor(batch_data["data"], dtype=torch.long).to(DEVICE)
             # target = (
