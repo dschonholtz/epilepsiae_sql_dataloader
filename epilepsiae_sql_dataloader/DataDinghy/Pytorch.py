@@ -37,44 +37,34 @@ class SeizureDataset(Dataset):
         self.batch_size = batch_size
         self.buffer = []
         self.buffer_index = 0
-        print(
-            "About to do query. (This part takes a couple minutes then we can move at light speed)"
-        )
 
-        # Construct the query for fetching the IDs
-        query = session.query(DataChunk.id)
-
-        # Apply patient filter
-        query = query.filter(DataChunk.patient_id == patient_id)
-
-        # Apply seizure state filter if specified
+        # Construct the query for counting rows matching the criteria
+        query = session.query(DataChunk).filter(DataChunk.patient_id == patient_id)
         if self.seizure_states is not None:
             query = query.filter(DataChunk.seizure_state.in_(self.seizure_states))
-
-        # Apply data type filter if specified
         if self.data_types is not None:
             query = query.filter(DataChunk.data_type.in_(self.data_types))
 
-        self.data_chunk_ids = query.all()
-        print("query done.")
-        self.total_chunks = len(self.data_chunk_ids)
-        print(f"total chunks: {self.total_chunks}   ")
-
-    def __len__(self):
-        return self.total_chunks
+        # Fetch the count
+        self.total_chunks = query.count()
+        print(f"total chunks: {self.total_chunks}")
 
     def _fetch_next_batch(self):
         print("Fetching next batch")
-        start_idx = self.buffer_index
-        end_idx = min(start_idx + self.batch_size, self.total_chunks)
+        query = self.session.query(DataChunk).filter(DataChunk.patient_id == patient_id)
+        if self.seizure_states is not None:
+            query = query.filter(DataChunk.seizure_state.in_(self.seizure_states))
+        if self.data_types is not None:
+            query = query.filter(DataChunk.data_type.in_(self.data_types))
 
-        batch_ids = [id_[0] for id_ in self.data_chunk_ids[start_idx:end_idx]]
-        self.buffer = (
-            self.session.query(DataChunk).filter(DataChunk.id.in_(batch_ids)).all()
-        )
+        # Fetch data using pagination
+        self.buffer = query.limit(self.batch_size).offset(self.buffer_index).all()
 
         self.buffer_index += self.batch_size
         print("Done fetching next batch")
+
+    def __len__(self):
+        return self.total_chunks
 
     def __getitem__(self, idx):
         # If buffer is empty or index out of range, fetch the next batch
