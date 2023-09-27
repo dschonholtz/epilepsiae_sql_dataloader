@@ -38,6 +38,7 @@ class SeizureDataset(Dataset):
         self.buffer = []
         self.buffer_index = 0
         self.patient_id = patient_id
+        self.current_position_in_buffer = 0
 
         # Construct the query for counting rows matching the criteria
         query = session.query(DataChunk).filter(DataChunk.patient_id == patient_id)
@@ -65,20 +66,22 @@ class SeizureDataset(Dataset):
             raise IndexError("Index out of range")
 
         self.buffer_index += self.batch_size
+        self.current_position_in_buffer = 0
 
     def __len__(self):
         return self.total_chunks
 
     def __getitem__(self, idx):
-        # If buffer is empty or index out of range, fetch the next batch
-        if not self.buffer or idx >= self.buffer_index:
+        # If buffer is empty or current position has reached the end of the buffer, fetch the next batch
+        if not self.buffer or self.current_position_in_buffer >= len(self.buffer):
             print(
                 f"Fetching next batch buffer len: {len(self.buffer)} idx: {idx} buffer_idx:  {self.buffer_index}"
             )
             self._fetch_next_batch()
 
         # Get the data chunk from the buffer
-        data_chunk = self.buffer[idx % self.batch_size]
+        data_chunk = self.buffer[self.current_position_in_buffer]
+        self.current_position_in_buffer += 1
 
         sample_data = {
             "data": data_chunk.data,
