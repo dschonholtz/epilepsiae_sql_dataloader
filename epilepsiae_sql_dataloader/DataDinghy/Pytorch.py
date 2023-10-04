@@ -132,7 +132,7 @@ def train_torch_seizure_model(
         i = 0
         for batch_data in data_loader:
             i += 1
-            if i % 1 == 0:
+            if i % 50 == 0:
                 print(f"batch {i}")
             # data = torch.tensor(batch_data["data"], dtype=torch.long).to(DEVICE)
             # target = (
