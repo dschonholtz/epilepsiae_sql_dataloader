@@ -3,12 +3,14 @@ from epilepsiae_sql_dataloader.models.LoaderTables import (
     Dataset as DBDataset,
     Patient,
 )
+import numpy as np
 from epilepsiae_sql_dataloader.models.Sample import Sample
 from epilepsiae_sql_dataloader.models.Seizures import Seizure
 
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql.expression import func
 
 from torch.utils.data import Dataset
 import torch
@@ -20,6 +22,9 @@ from torch.utils.data import DataLoader
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+from sqlalchemy.sql.expression import func
+
+
 class SeizureDataset(Dataset):
     def __init__(
         self,
@@ -29,6 +34,7 @@ class SeizureDataset(Dataset):
         data_types=None,
         batch_size=1000,
         transform=None,
+        shuffle=False,
     ):
         self.session = session
         self.seizure_states = seizure_states
@@ -36,9 +42,9 @@ class SeizureDataset(Dataset):
         self.transform = transform
         self.batch_size = batch_size
         self.buffer = []
-        self.buffer_index = 0
         self.patient_id = patient_id
         self.current_position_in_buffer = 0
+        self.shuffle = shuffle
 
         # Construct the query for counting rows matching the criteria
         query = session.query(DataChunk).filter(DataChunk.patient_id == patient_id)
@@ -51,6 +57,17 @@ class SeizureDataset(Dataset):
         self.total_chunks = query.count()
         print(f"total chunks: {self.total_chunks}")
 
+        # Calculate the total number of batches
+        self.total_batches = (
+            self.total_chunks + self.batch_size - 1
+        ) // self.batch_size
+
+        # Generate random indices for batches if shuffle is True
+        self.batch_indices = list(range(self.total_batches))
+        if self.shuffle:
+            np.random.shuffle(self.batch_indices)
+        self.current_batch_index = 0
+
     def _fetch_next_batch(self):
         query = self.session.query(DataChunk).filter(
             DataChunk.patient_id == self.patient_id
@@ -60,13 +77,18 @@ class SeizureDataset(Dataset):
         if self.data_types is not None:
             query = query.filter(DataChunk.data_type.in_(self.data_types))
 
+        # Determine the offset using the current batch index
+        offset = self.batch_indices[self.current_batch_index] * self.batch_size
+
         # Fetch data using pagination
-        self.buffer = query.limit(self.batch_size).offset(self.buffer_index).all()
+        self.buffer = query.limit(self.batch_size).offset(offset).all()
         if not self.buffer:
             raise IndexError("Index out of range")
 
-        self.buffer_index += self.batch_size
         self.current_position_in_buffer = 0
+        self.current_batch_index += 1
+        if self.current_batch_index >= self.total_batches:
+            self.current_batch_index = 0
 
     def __len__(self):
         return self.total_chunks
@@ -81,7 +103,7 @@ class SeizureDataset(Dataset):
         self.current_position_in_buffer += 1
 
         sample_data = {
-            "data": data_chunk.data,
+            "data": np.frombuffer(data_chunk.data, dtype=np.float64),
             "seizure_state": data_chunk.seizure_state,
             "data_type": data_chunk.data_type,
         }
@@ -97,7 +119,11 @@ def train_torch_seizure_model(
 ):
     # Create the seizure dataset
     seizure_dataset = SeizureDataset(
-        session, 81802, seizure_states=seizure_states, data_types=data_types
+        session,
+        81802,
+        seizure_states=seizure_states,
+        data_types=data_types,
+        shuffle=True,
     )
     data_loader = DataLoader(seizure_dataset, batch_size=batch_size, shuffle=True)
 
@@ -152,7 +178,7 @@ def train_torch_seizure_model(
             # loss.backward()
             # optimizer.step()
 
-        print(f"Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}")
+        # print(f"Epoch [{epoch+1}/{epochs}], Loss: {loss.item():.4f}")
 
     return model
 
