@@ -10,6 +10,7 @@ from epilepsiae_sql_dataloader.models.Seizures import Seizure
 from epilepsiae_sql_dataloader.utils import ENGINE_STR
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.sql.expression import func
 
 from torch.utils.data import Dataset
 import torch
@@ -28,43 +29,58 @@ class SeizureDataset(Dataset):
         patient_id: int,
         seizure_states=[0, 2],
         data_types=None,
+        batch_size=1000,
         transform=None,
     ):
         self.session = session
         self.seizure_states = seizure_states
         self.data_types = data_types
         self.transform = transform
+        self.batch_size = batch_size
+        self.buffer = []
+        self.buffer_index = 0
         self.patient_id = patient_id
+        self.current_position_in_buffer = 0
 
-        if not self.data_types or not self.seizure_states:
-            raise ValueError("Both data_types and seizure_states must be provided.")
+        # Construct the query for counting rows matching the criteria
+        query = session.query(DataChunk).filter(DataChunk.patient_id == patient_id)
+        if self.seizure_states is not None:
+            query = query.filter(DataChunk.seizure_state.in_(self.seizure_states))
+        if self.data_types is not None:
+            query = query.filter(DataChunk.data_type.in_(self.data_types))
 
-        # Construct the query for getting the IDs of rows matching the criteria
-        query = session.query(DataChunk.id).filter(DataChunk.patient_id == patient_id)
-        query = query.filter(DataChunk.seizure_state.in_(self.seizure_states))
-        query = query.filter(DataChunk.data_type.in_(self.data_types))
+        # Fetch the count
+        self.total_chunks = query.count()
+        print(f"total chunks: {self.total_chunks}")
 
-        # Fetch the IDs
-        self.datachunk_ids = [row[0] for row in query.all()]
-        print(f"total chunks: {len(self.datachunk_ids)}")
+    def _fetch_next_batch(self):
+        query = self.session.query(DataChunk).filter(
+            DataChunk.patient_id == self.patient_id
+        )
+        if self.seizure_states is not None:
+            query = query.filter(DataChunk.seizure_state.in_(self.seizure_states))
+        if self.data_types is not None:
+            query = query.filter(DataChunk.data_type.in_(self.data_types))
+
+        # Fetch data using pagination and randomize the results
+        self.buffer = query.order_by(func.random()).limit(self.batch_size).all()
+        if not self.buffer:
+            raise IndexError("Index out of range")
+
+        self.current_position_in_buffer = 0
+
 
     def __len__(self):
-        return len(self.datachunk_ids)
+        return self.total_chunks
 
     def __getitem__(self, idx):
-        # Fetch the specific data chunk using its ID
-        data_chunk = (
-            self.session.query(DataChunk)
-            .filter(
-                DataChunk.id == self.datachunk_ids[idx],
-                DataChunk.seizure_state.in_(self.seizure_states),
-                DataChunk.data_type.in_(self.data_types),
-            )
-            .first()
-        )
+        # If buffer is empty or current position has reached the end of the buffer, fetch the next batch
+        if not self.buffer or self.current_position_in_buffer >= len(self.buffer):
+            self._fetch_next_batch()
 
-        if data_chunk is None:
-            raise IndexError("Index out of range")
+        # Get the data chunk from the buffer
+        data_chunk = self.buffer[self.current_position_in_buffer]
+        self.current_position_in_buffer += 1
 
         sample_data = {
             "data": np.frombuffer(data_chunk.data, dtype=np.float64),
