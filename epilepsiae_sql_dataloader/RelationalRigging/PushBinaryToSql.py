@@ -76,10 +76,10 @@ class BinaryToSql:
             results = [dict_with_attrs(object_as_dict(sample)) for sample in results]
         return results
 
-    def load_binary(self, fp, num_channels, dtype=np.float64):
+    def load_binary(self, fp, num_channels, dtype=np.uint16):
         """
         Loads the binary data from the given file pointer.
-        It is assumed that the binary data is stored as a 2D array of float64 values of size -1, num_channels
+        It is assumed that the binary data is stored as a 2D array of uint values of size -1, num_channels
         """
         print(f"Loading binary data from {fp}")
         binary = np.fromfile(fp, dtype=dtype)
@@ -91,9 +91,10 @@ class BinaryToSql:
         """
         Downsamples and normalizes the given binary data.
         """
-        # Downsample the data
+        # Downsample the data and cast it to float64 values.
+        float_binary = binary.astype(np.float64)
         decimate_factor = sample_freq // new_sample_freq
-        x = decimate(binary, decimate_factor, axis=0)
+        x = decimate(float_binary, decimate_factor, axis=0)
         x = normalize(x, norm="l2", axis=1, copy=True, return_norm=False)
         return x
 
