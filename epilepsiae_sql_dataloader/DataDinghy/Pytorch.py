@@ -119,7 +119,11 @@ def train_torch_seizure_model(
 ):
     # Create the seizure dataset
     seizure_dataset = SeizureDataset(
-        session, 81802, seizure_states=seizure_states, data_types=data_types
+        session,
+        81802,
+        seizure_states=seizure_states,
+        data_types=data_types,
+        shuffle=True,
     )
     data_loader = DataLoader(seizure_dataset, batch_size=batch_size, shuffle=True)
 
