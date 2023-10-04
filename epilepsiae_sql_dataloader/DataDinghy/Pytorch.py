@@ -3,6 +3,7 @@ from epilepsiae_sql_dataloader.models.LoaderTables import (
     Dataset as DBDataset,
     Patient,
 )
+import numpy as np
 from epilepsiae_sql_dataloader.models.Sample import Sample
 from epilepsiae_sql_dataloader.models.Seizures import Seizure
 
@@ -81,7 +82,7 @@ class SeizureDataset(Dataset):
         self.current_position_in_buffer += 1
 
         sample_data = {
-            "data": data_chunk.data,
+            "data": np.frombuffer(data_chunk.data, dtype=np.float64),
             "seizure_state": data_chunk.seizure_state,
             "data_type": data_chunk.data_type,
         }
