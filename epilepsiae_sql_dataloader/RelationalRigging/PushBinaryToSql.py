@@ -8,27 +8,6 @@ The way this file accomplishes that.
 Is by reading in an entire binary blob, finding the corresponding sample and seizure information
 Noting the exact sample now and after downsamping, downsampling, then breaking the data into 1 second chunks, then applying the seizure state
 info accordingly.
-
-about to query data chunks for patient 108402
-about to query data chunks for patient 62002
-about to query data chunks for patient 115002
-patient 115002 has 0 data chunks
-patient 107302 has 0 data chunks
-patient 107702 has 0 data chunks
-patient 58302 has 0 data chunks
-patient 54802 has 0 data chunks
-patient 86202 has 0 data chunks
-patient 91602 has 0 data chunks
-patient 95802 has 0 data chunks
-patient 1324503 has 0 data chunks
-patient 112502 has 0 data chunks
-patient 13902 has 0 data chunks
-patient 73202 has 0 data chunks
-patient 114602 has 0 data chunks
-patient 37502 has 0 data chunks
-patient 97002 has 0 data chunks
-patient 44202 has 0 data chunks
-
 """
 
 from epilepsiae_sql_dataloader.utils import session_scope, ENGINE_STR
@@ -97,10 +76,10 @@ class BinaryToSql:
             results = [dict_with_attrs(object_as_dict(sample)) for sample in results]
         return results
 
-    def load_binary(self, fp, num_channels, dtype=np.uint16):
+    def load_binary(self, fp, num_channels, dtype=np.float64):
         """
         Loads the binary data from the given file pointer.
-        It is assumed that the binary data is stored as a 2D array of uint16 values of size -1, num_channels
+        It is assumed that the binary data is stored as a 2D array of float64 values of size -1, num_channels
         """
         print(f"Loading binary data from {fp}")
         binary = np.fromfile(fp, dtype=dtype)
@@ -164,7 +143,7 @@ class BinaryToSql:
             ]
 
             # Convert the entire chunk data to bytes
-            chunk_data_bytes = chunk_data.astype(np.uint16).tobytes()
+            chunk_data_bytes = chunk_data.astype(np.float64).tobytes()
 
             # Separate the chunk into its component channels
             for j in range(num_channels):
@@ -339,29 +318,6 @@ def main(dir):
     pat_dirs = os.listdir(dir)
     for i, item in enumerate(pat_dirs):
         if os.path.isdir(os.path.join(dir, item)) and item.startswith("pat_"):
-            # Patients in this list have already been done.
-            if item not in [
-                "pat_108402",
-                "pat_62002",
-                "pat_115002",
-                "pat_107302",
-                "pat_107702",
-                "pat_58302",
-                "pat_54802",
-                "pat_86202",
-                "pat_91602",
-                "pat_95802",
-                "pat_1324503",
-                "pat_112502",
-                "pat_13902",
-                "pat_73202",
-                "pat_114602",
-                "pat_37502",
-                "pat_97002",
-                "pat_44202",
-            ]:
-                continue
-
             # Extract the patient ID
             pat_id = int(item.split("_")[1])
             click.echo(f"Processing patient ID: {pat_id}")
