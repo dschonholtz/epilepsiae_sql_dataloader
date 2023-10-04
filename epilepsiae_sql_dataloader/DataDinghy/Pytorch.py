@@ -22,6 +22,9 @@ from torch.utils.data import DataLoader
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 
+from sqlalchemy.sql.expression import func
+
+
 class SeizureDataset(Dataset):
     def __init__(
         self,
@@ -31,6 +34,7 @@ class SeizureDataset(Dataset):
         data_types=None,
         batch_size=1000,
         transform=None,
+        shuffle=False,
     ):
         self.session = session
         self.seizure_states = seizure_states
@@ -38,9 +42,9 @@ class SeizureDataset(Dataset):
         self.transform = transform
         self.batch_size = batch_size
         self.buffer = []
-        self.buffer_index = 0
         self.patient_id = patient_id
         self.current_position_in_buffer = 0
+        self.shuffle = shuffle
 
         # Construct the query for counting rows matching the criteria
         query = session.query(DataChunk).filter(DataChunk.patient_id == patient_id)
@@ -53,6 +57,17 @@ class SeizureDataset(Dataset):
         self.total_chunks = query.count()
         print(f"total chunks: {self.total_chunks}")
 
+        # Calculate the total number of batches
+        self.total_batches = (
+            self.total_chunks + self.batch_size - 1
+        ) // self.batch_size
+
+        # Generate random indices for batches if shuffle is True
+        self.batch_indices = list(range(self.total_batches))
+        if self.shuffle:
+            np.random.shuffle(self.batch_indices)
+        self.current_batch_index = 0
+
     def _fetch_next_batch(self):
         query = self.session.query(DataChunk).filter(
             DataChunk.patient_id == self.patient_id
@@ -62,12 +77,18 @@ class SeizureDataset(Dataset):
         if self.data_types is not None:
             query = query.filter(DataChunk.data_type.in_(self.data_types))
 
-        # Fetch data using pagination and randomize the results
-        self.buffer = query.order_by(func.random()).limit(self.batch_size).all()
+        # Determine the offset using the current batch index
+        offset = self.batch_indices[self.current_batch_index] * self.batch_size
+
+        # Fetch data using pagination
+        self.buffer = query.limit(self.batch_size).offset(offset).all()
         if not self.buffer:
             raise IndexError("Index out of range")
 
         self.current_position_in_buffer = 0
+        self.current_batch_index += 1
+        if self.current_batch_index >= self.total_batches:
+            self.current_batch_index = 0
 
     def __len__(self):
         return self.total_chunks
