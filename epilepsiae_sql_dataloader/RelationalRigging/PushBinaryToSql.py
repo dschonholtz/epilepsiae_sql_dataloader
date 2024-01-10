@@ -146,6 +146,9 @@ class BinaryToSql:
                     seizures, chunk_start_ts, chunk_end_ts, pre_seizure_time * 60
                 )  # convert minutes to seconds
 
+            seizure_state_0 = self.get_seizure_state(
+                seizures, chunk_start_ts, chunk_end_ts, 0
+            )
             chunk_data = data[
                 i * sample_length * freq : (i + 1) * sample_length * freq, :
             ]
@@ -164,6 +167,7 @@ class BinaryToSql:
                     "data": channel_data_bytes,
                     "data_type": self.process_data_types(elect_names[j], dataset_name),
                     "patient_id": sample.pat_id,
+                    "seizure_state": seizure_state_0,
                 }
                 chunk_mapping.update(seizure_states)
 
