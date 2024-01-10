@@ -96,7 +96,6 @@ class DataChunk(Base):
 
     id = Column(BigInteger, primary_key=True)
     patient_id = Column(Integer, ForeignKey("patients.id"))
-    seizure_state = Column(Integer)
     data_type = Column(SmallInteger)
     data = Column(BYTEA)
     seizure_state_15m = Column(Integer)
@@ -110,7 +109,7 @@ class DataChunk(Base):
 
     patient = relationship(Patient, back_populates="chunks")
     idx_patient_seizure_data_type = Index(
-        "idx_patient_seizure_data_type", "patient_id", "seizure_state", "data_type"
+        "idx_patient_seizure_data_type", "patient_id", "data_type"
     )
 
 
