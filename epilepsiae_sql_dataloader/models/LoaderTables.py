@@ -82,13 +82,9 @@ class DataChunk(Base):
     patient: A relationship that links to the Patient instance associated with a data chunk.
     dataset: A relationship that links to the Dataset instance associated with a data chunk.
     state: A relationship that links to the SeizureState instance associated with a data chunk.
-    seizure_state_15m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 15 minutes
     seizure_state_30m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 30 minutes
-    seizure_state_45m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 45 minutes
     seizure_state_60m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 60 minutes
-    seizure_state_75m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 75 minutes
     seizure_state_90m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 90 minutes
-    seizure_state_105m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 105 minutes
     seizure_state_120m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 120 minutes
     """
 
@@ -99,13 +95,11 @@ class DataChunk(Base):
     data_type = Column(SmallInteger)
     data = Column(BYTEA)
     seizure_state = Column(Integer)
+    seizure_state_5m = Column(Integer)
     seizure_state_15m = Column(Integer)
     seizure_state_30m = Column(Integer)
-    seizure_state_45m = Column(Integer)
     seizure_state_60m = Column(Integer)
-    seizure_state_75m = Column(Integer)
     seizure_state_90m = Column(Integer)
-    seizure_state_105m = Column(Integer)
     seizure_state_120m = Column(Integer)
 
     patient = relationship(Patient, back_populates="chunks")
