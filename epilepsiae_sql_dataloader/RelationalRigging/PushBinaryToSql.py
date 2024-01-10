@@ -131,14 +131,21 @@ class BinaryToSql:
 
         # Extract the electrode names for the sample (outside the loop)
         elect_names = Sample.elect_names_to_list(elect_names=sample.elec_names)
-
         # Go through the data chunk by chunk
         for i in range(num_chunks):
             chunk_start_ts = sample.start_ts + timedelta(seconds=i * sample_length)
             chunk_end_ts = chunk_start_ts + timedelta(seconds=sample_length)
-            seizure_state = self.get_seizure_state(
-                seizures, chunk_start_ts, chunk_end_ts
-            )
+
+            # Calculate seizure states at different time intervals
+            pre_seizure_times = [15, 30, 45, 60, 75, 90, 105, 120]  # in minutes
+            seizure_states = {}
+            for pre_seizure_time in pre_seizure_times:
+                seizure_states[
+                    f"seizure_state_{pre_seizure_time}m"
+                ] = self.get_seizure_state(
+                    seizures, chunk_start_ts, chunk_end_ts, pre_seizure_time * 60
+                )  # convert minutes to seconds
+
             chunk_data = data[
                 i * sample_length * freq : (i + 1) * sample_length * freq, :
             ]
@@ -155,10 +162,10 @@ class BinaryToSql:
                 # Create a DataChunk mapping (without instantiating an object)
                 chunk_mapping = {
                     "data": channel_data_bytes,
-                    "seizure_state": seizure_state,
                     "data_type": self.process_data_types(elect_names[j], dataset_name),
                     "patient_id": sample.pat_id,
                 }
+                chunk_mapping.update(seizure_states)
 
                 data_chunks.append(chunk_mapping)
 
