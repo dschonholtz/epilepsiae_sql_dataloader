@@ -137,7 +137,7 @@ class BinaryToSql:
             chunk_end_ts = chunk_start_ts + timedelta(seconds=sample_length)
 
             # Calculate seizure states at different time intervals
-            pre_seizure_times = [5, 30, 60, 90, 120]  # in minutes
+            pre_seizure_times = [5, 15, 30, 60, 90, 120]  # in minutes
             seizure_states = {}
             for pre_seizure_time in pre_seizure_times:
                 seizure_states[
