@@ -3,21 +3,17 @@ Uses the SQL Alchemy models in models/ to load everything you could possibly wan
 """
 
 import glob
-import numpy as np
-import pandas as pd
 from sqlalchemy import create_engine
 import csv
 from pathlib import Path
 from datetime import datetime
 import pandas as pd
-from pandas import DataFrame
-from pandas import to_datetime
+from pandas import DataFrame, to_datetime
 
-from epilepsiae_sql_dataloader.utils import ENGINE_STR, session_scope
+from epilepsiae_sql_dataloader.utils import ENGINE_STR
 from epilepsiae_sql_dataloader.models.Sample import Sample
 from epilepsiae_sql_dataloader.models.LoaderTables import Patient, Dataset
 from epilepsiae_sql_dataloader.models.Seizures import Seizure
-from epilepsiae_sql_dataloader.models.Base import Base
 
 import sys
 import click
@@ -25,14 +21,15 @@ import click
 
 class MetaDataBuilder(object):
     def __init__(self, engine_str):
-        self.engine_str = engine_str
+        self.engine = create_engine(engine_str)
 
     def get_samples(self):
         """
         Get all samples from the database.
         """
-        with session_scope(self.engine_str) as session:
-            samples = session.query(Sample).all()
+        with self.engine.connect() as connection:
+            result = connection.execute("SELECT * FROM samples")
+            samples = result.fetchall()
             return samples
 
     def read_seizure_data(self, fp: str):
@@ -102,22 +99,13 @@ class MetaDataBuilder(object):
         Load the seizure data into the database.
         Data has been cast to a numpy array [datetime, datetime, int, int]
         """
-        with session_scope(self.engine_str) as session:
-            # Query for the patient passed to the method with the session
-            patient = session.query(Patient).filter(Patient.id == patient_id).first()
+        with self.engine.connect() as connection:
             for row in data:
-                onset = row[0]
-                offset = row[1]
-                onset_sample = row[2]
-                offset_sample = row[3]
-                seizure = Seizure(
-                    onset=onset,
-                    offset=offset,
-                    onset_sample=int(onset_sample),
-                    offset_sample=int(offset_sample),
+                onset, offset, onset_sample, offset_sample = row
+                connection.execute(
+                    "INSERT INTO seizures (pat_id, onset, offset, onset_sample, offset_sample) VALUES (%s, %s, %s, %s, %s)",
+                    (patient_id, onset, offset, onset_sample, offset_sample),
                 )
-                patient.seizures.append(seizure)
-            print(f"Patient has this many seizures: {len(patient.seizures)}")
 
     def read_sample_data(self, fp: Path):
         """
@@ -153,7 +141,6 @@ class MetaDataBuilder(object):
         :param fp: a file path to the sample data
         :return: A DataFrame that will be easily loaded to pandas later
         """
-        # Define the expected mandatory fields
         mandatory_fields = {
             "start_ts",
             "num_samples",
@@ -163,7 +150,6 @@ class MetaDataBuilder(object):
             "rec_id",
             "duration_in_sec",
         }
-
         data = {}
         with fp.open("r") as f:
             reader = csv.reader(f, delimiter="=")
@@ -172,44 +158,25 @@ class MetaDataBuilder(object):
                 if key.startswith("#"):
                     continue
                 if key == "elec_names":
-                    value = [",".join(value[1:-1].split(","))]
+                    value = value.strip("[]").split(",")
                 elif key == "start_ts":
-                    try:
-                        value = to_datetime(value)
-                    except ValueError:
-                        if key in mandatory_fields:
-                            return DataFrame()  # Bad format for a mandatory field
-                elif key == "pat_id":
-                    continue
-                elif key in mandatory_fields:
-                    try:
-                        value = int(value)
-                    except ValueError:
-                        return DataFrame()  # Bad format for a mandatory field
+                    value = pd.to_datetime(value)
+                elif key in {
+                    "num_samples",
+                    "sample_freq",
+                    "num_channels",
+                    "adm_id",
+                    "rec_id",
+                    "duration_in_sec",
+                    "sample_bytes",
+                }:
+                    value = int(value)
                 elif key == "conversion_factor":
-                    try:
-                        value = float(value)
-                    except ValueError:
-                        # Bad format for conversion_factor, but it's not mandatory
-                        data[key] = None
-                elif key == "sample_bytes":
-                    try:
-                        value = int(value)
-                    except ValueError:
-                        # Bad format for sample_bytes, but it's not mandatory
-                        data[key] = None
-                else:
-                    # Non-mandatory field with an unexpected type
-                    data[key] = None
+                    value = float(value)
                 data[key] = value
-
-        # Check if all mandatory fields are present
         if not mandatory_fields.issubset(data.keys()):
-            return (
-                DataFrame()
-            )  # Return an empty DataFrame if any mandatory field is missing
-
-        return DataFrame(data)
+            return pd.DataFrame()
+        return pd.DataFrame([data])
 
     def file_generator(self, directory):
         adm_dirs = directory.glob("adm_*")
@@ -224,28 +191,40 @@ class MetaDataBuilder(object):
         """
         Load the sample data into the database.
         """
-        with session_scope(self.engine_str) as session:
-            # Query for the patient passed to the method with the session
-            patient = session.query(Patient).filter(Patient.id == patient_id).first()
-
+        with self.engine.connect() as connection:
             for head_file in self.file_generator(directory):
-                # try:
                 data = self.read_sample_data(head_file).to_dict("records")[0]
-                # print(data)
                 data["data_file"] = str(head_file.with_suffix(".data"))
-                sample = Sample(**data)
-                patient.samples.append(sample)
-                # except Exception as e:
-                #     print(f"Error processing file {head_file}: {e}")
+                connection.execute(
+                    "INSERT INTO samples (start_ts, num_samples, sample_freq, conversion_factor, num_channels, elec_names, pat_id, adm_id, rec_id, duration_in_sec, sample_bytes, data_file) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                    (
+                        data["start_ts"],
+                        data["num_samples"],
+                        data["sample_freq"],
+                        data["conversion_factor"],
+                        data["num_channels"],
+                        data["elec_names"],
+                        patient_id,
+                        data["adm_id"],
+                        data["rec_id"],
+                        data["duration_in_sec"],
+                        data["sample_bytes"],
+                        data["data_file"],
+                    ),
+                )
 
     def create_patient(self, pat_id: int, dataset_id: int):
-        with session_scope(self.engine_str) as session:
-            dataset = session.query(Dataset).filter(Dataset.id == dataset_id).first()
-            print(f"Dataset query with id: {dataset.id} returned: {dataset}")
-            patient = Patient(id=pat_id)
-            session.add(patient)
-            dataset.patients.append(patient)
-            session.commit()
+        with self.engine.connect() as connection:
+            transaction = connection.begin()
+            try:
+                connection.execute(
+                    "INSERT INTO patients (id, dataset_id) VALUES (%s, %s)",
+                    (pat_id, dataset_id),
+                )
+                transaction.commit()
+            except:
+                transaction.rollback()
+                raise
 
     def load_data_in_pat_dir(self, directory, dataset_id: int):
         print(directory)
@@ -254,7 +233,6 @@ class MetaDataBuilder(object):
         data = self.read_seizure_data(directory_path / "seizure_list")
         patient_id_int = int(pat_id.split("_")[1])
         self.create_patient(patient_id_int, dataset_id)
-        # print("Found seizure data: ", data)
         self.load_seizure_data_to_db(data, patient_id_int)
         self.load_sample_dir_to_db(directory_path, patient_id_int)
 
@@ -272,21 +250,17 @@ class MetaDataBuilder(object):
         """
         Creates a dataset with the given name and returns the id
         """
-        with session_scope(self.engine_str) as session:
-            dataset = Dataset(name=name)
-            session.add(dataset)
-            session.commit()
-            dataset_id = dataset.id
-
+        with self.engine.connect() as connection:
+            result = connection.execute(
+                "INSERT INTO datasets (name) VALUES (%s) RETURNING id", (name,)
+            )
+            dataset_id = result.fetchone()[0]
         return dataset_id
 
     def start(self, directories):
         paths = []
         for directory in directories:
-            # If the dir ends in inv create the inv dataset if it doesn't already exist
-            # if the dir ends in surf30 create the surf dataset if it doesn't already exist
             directory = str(directory)
-            print("directory: ", directory)
             if directory.endswith("inv"):
                 dataset_id = self.create_dataset("inv")
             elif directory.endswith("surf30"):
@@ -349,10 +323,6 @@ def main(directory, engine_str, drop_tables, patient_id, seizure_file):
     loader.start(directory)
 
     return 0
-
-
-if __name__ == "__main__":
-    sys.exit(main())
 
 
 if __name__ == "__main__":

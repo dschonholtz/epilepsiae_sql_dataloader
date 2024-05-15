@@ -1,50 +1,42 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base
+import psycopg2
+import pytest
+from sqlalchemy.schema import CreateTable, DropTable
+from epilepsiae_sql_dataloader.models.LoaderTables import (
+    metadata,
+    datasets,
+    patients,
+    data_chunks,
+)
+
+ENGINE_STR = "postgresql+psycopg2://postgres:postgres@localhost/seizure_db_test"
 
 
-ENGINE_STR = "postgresql+psycopg2://postgres:postgres@localhost/seizure_db"
+@pytest.fixture(scope="function")
+def db_session():
+    postgres_ip = "172.17.0.2"
+    username = "postgres"
+    password = "postgres"
+    dbname = "seizure_db_test"
 
+    conn = psycopg2.connect(
+        dbname=dbname, user=username, password=password, host=postgres_ip
+    )
+    cursor = conn.cursor()
 
-def get_session(engine_str=ENGINE_STR):
-    """
-    Create a session to the database.
-    """
-    # Create an engine that stores data in the local directory's
-    # on the server we could easily stuff this on /mnt/wines if we wanted to
-    engine = create_engine(engine_str)
-    declarative_base().metadata.create_all(engine)
+    # Drop existing tables
+    for table in reversed(metadata.sorted_tables):
+        cursor.execute(DropTable(table))
 
-    # Create all tables in the engine. This is equivalent to "Create Table"
-    # statements in raw SQL.
-    declarative_base().metadata.bind = engine
+    # Create tables
+    for table in metadata.sorted_tables:
+        cursor.execute(CreateTable(table))
 
-    # Create a configured "Session" class
-    db_session = sessionmaker(bind=engine)
+    conn.commit()
+    print("Created all of the tables")
 
-    # Create a Session
-    session = db_session()
+    yield cursor  # this is where the testing happens
 
-    return session
-
-
-from contextlib import contextmanager
-from sqlalchemy.orm import sessionmaker
-
-
-ENGINE_STR = "postgresql+psycopg2://postgres:postgres@localhost/seizure_db"
-
-
-@contextmanager
-def session_scope(engine_str):
-    """Provide a transactional scope around a series of operations."""
-    engine = create_engine(engine_str)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    try:
-        yield session
-        session.commit()
-    except:
-        session.rollback()
-        raise
-    finally:
-        session.close()
+    # After the test function has completed, rollback any changes to the DB and close the connection
+    conn.rollback()
+    cursor.close()
+    conn.close()

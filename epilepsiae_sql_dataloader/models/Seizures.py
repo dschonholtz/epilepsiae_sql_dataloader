@@ -1,7 +1,3 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey
-from sqlalchemy.orm import declarative_base, relationship
-from epilepsiae_sql_dataloader.models.Base import Base
-
 """
 Example seizure file
 
@@ -18,24 +14,36 @@ Example seizure file
 2008-11-11 07:54:56.308594	2008-11-11 07:55:01.308594	558396	563516
 """
 
+from sqlalchemy import (
+    create_engine,
+    MetaData,
+    Table,
+    Column,
+    Integer,
+    DateTime,
+    ForeignKey,
+)
+from sqlalchemy.sql import text
 
-class Seizure(Base):
-    __tablename__ = "seizures"
 
-    id = Column(Integer, primary_key=True)
-    pat_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
-    onset = Column(DateTime, nullable=False)
-    offset = Column(DateTime, nullable=False)
-    onset_sample = Column(Integer, nullable=False)
-    offset_sample = Column(Integer, nullable=False)
+seizures = Table(
+    "seizures",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("pat_id", Integer, ForeignKey("patients.id"), nullable=False),
+    Column("onset", DateTime, nullable=False),
+    Column("offset", DateTime, nullable=False),
+    Column("onset_sample", Integer, nullable=False),
+    Column("offset_sample", Integer, nullable=False),
+)
 
-    patient = relationship("Patient", back_populates="seizures")
 
-    def __repr__(self):
-        return (
-            f"<Seizure(onset={self.onset}, "
-            f"offset={self.offset}, "
-            f"onset_sample={self.onset_sample}, "
-            f"offset_sample={self.offset_sample}, "
-            f"pat_id={self.pat_id})>"
-        )
+def insert_seizure(connection, pat_id, onset, offset, onset_sample, offset_sample):
+    insert_stmt = seizures.insert().values(
+        pat_id=pat_id,
+        onset=onset,
+        offset=offset,
+        onset_sample=onset_sample,
+        offset_sample=offset_sample,
+    )
+    connection.execute(insert_stmt)
