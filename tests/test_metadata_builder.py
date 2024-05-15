@@ -1,6 +1,5 @@
 import pytest
 from epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder import MetaDataBuilder
-from epilepsiae_sql_dataloader.utils import session_scope
 from tests.utils import ENGINE_STR
 from pathlib import Path
 from datetime import datetime
