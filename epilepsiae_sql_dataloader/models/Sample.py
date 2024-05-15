@@ -118,20 +118,20 @@ class SampleValidator:
         cls.validate_data_file(kwargs.get("data_file"))
 
 
-# samples_table = Table(
-#     "samples",
-#     metadata,
-#     Column("id", Integer, primary_key=True),
-#     Column("start_ts", DateTime, nullable=False),
-#     Column("num_samples", Integer, nullable=False),
-#     Column("sample_freq", Integer, nullable=False),
-#     Column("conversion_factor", Float, nullable=False),
-#     Column("num_channels", Integer, nullable=False),
-#     Column("elec_names", String, nullable=False),
-#     Column("pat_id", Integer, ForeignKey("patients.id"), nullable=False),
-#     Column("adm_id", Integer, nullable=False),
-#     Column("rec_id", BigInteger, nullable=False),
-#     Column("duration_in_sec", Integer, nullable=False),
-#     Column("sample_bytes", Integer, nullable=False),
-#     Column("data_file", String, nullable=False),
-# )
+samples_table = Table(
+    "samples",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("start_ts", DateTime, nullable=False),
+    Column("num_samples", Integer, nullable=False),
+    Column("sample_freq", Integer, nullable=False),
+    Column("conversion_factor", Float, nullable=False),
+    Column("num_channels", Integer, nullable=False),
+    Column("elec_names", String, nullable=False),
+    Column("pat_id", Integer, ForeignKey("patients.id"), nullable=False),
+    Column("adm_id", Integer, nullable=False),
+    Column("rec_id", BigInteger, nullable=False),
+    Column("duration_in_sec", Integer, nullable=False),
+    Column("sample_bytes", Integer, nullable=False),
+    Column("data_file", String, nullable=False),
+)
