@@ -83,7 +83,7 @@ To do this you can run the following command:
 cd epilepsiae_sql_dataloader
 python -m venv venv
 source venv/bin/activate
-pip install -e .
+pip install -r requirements.txt
 python -m epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder --directories /mnt/external1/raw/inv --drop-tables
 python -m epilepsiae_sql_dataloader.RelationalRigging.MetaDataBuilder --directories /mnt/external1/raw/surf30
 ```

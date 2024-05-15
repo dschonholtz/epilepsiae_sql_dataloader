@@ -1,0 +1,10 @@
+Click>=7.0
+SQLAlchemy
+psycopg2-binary
+numpy
+pandas
+selenium
+scipy
+scikit-learn
+alembic  # for database migrations
+torch>=2.0.0  # for pytorch

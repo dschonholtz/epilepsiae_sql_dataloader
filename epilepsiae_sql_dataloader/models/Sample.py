@@ -13,48 +13,26 @@ duration_in_sec=3600
 sample_bytes=2
 """
 
+from sqlalchemy import (
+    create_engine,
+    Table,
+    Column,
+    Integer,
+    String,
+    Float,
+    DateTime,
+    BigInteger,
+    MetaData,
+    ForeignKey,
+)
+
 
 import datetime
-from sqlalchemy.orm import relationship
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, BigInteger
-from epilepsiae_sql_dataloader.models.LoaderTables import Patient
-from epilepsiae_sql_dataloader.models.Base import Base
 
 
-class Sample(Base):
-    __tablename__ = "samples"
-
-    id = Column(Integer, primary_key=True)
-    start_ts = Column(DateTime, nullable=False)
-    num_samples = Column(Integer, nullable=False)
-    sample_freq = Column(Integer, nullable=False)
-    conversion_factor = Column(Float, nullable=False)
-    num_channels = Column(Integer, nullable=False)
-    elec_names = Column(String, nullable=False)
-    pat_id = Column(Integer, ForeignKey("patients.id"), nullable=False)
-    adm_id = Column(Integer, nullable=False)
-    rec_id = Column(BigInteger, nullable=False)
-    duration_in_sec = Column(Integer, nullable=False)
-    sample_bytes = Column(Integer, nullable=False)
-    data_file = Column(String, nullable=False)
-
-    patient = relationship("Patient", back_populates="samples")
-
-    def __init__(
-        self,
-        start_ts,
-        num_samples,
-        sample_freq,
-        conversion_factor,
-        num_channels,
-        elec_names,
-        adm_id,
-        rec_id,
-        duration_in_sec,
-        sample_bytes,
-        data_file,
-    ):
-        # Type verification for start_ts
+class SampleValidator:
+    @staticmethod
+    def validate_start_ts(start_ts):
         if not isinstance(start_ts, datetime.datetime):
             raise TypeError(
                 "start_ts must be a datetime.datetime object. but is of type: "
@@ -63,67 +41,61 @@ class Sample(Base):
                 + str(start_ts)
             )
 
-        # Type verification for num_samples
+    @staticmethod
+    def validate_num_samples(num_samples):
         if not isinstance(num_samples, int):
             raise TypeError("num_samples must be an integer.")
 
-        # Type verification for sample_freq
+    @staticmethod
+    def validate_sample_freq(sample_freq):
         if not isinstance(sample_freq, int):
             raise TypeError("sample_freq must be an integer.")
 
-        # Type verification for conversion_factor
+    @staticmethod
+    def validate_conversion_factor(conversion_factor):
         if not isinstance(conversion_factor, float):
             raise TypeError("conversion_factor must be a float.")
 
-        # Type verification for num_channels
+    @staticmethod
+    def validate_num_channels(num_channels):
         if not isinstance(num_channels, int):
             raise TypeError("num_channels must be an integer.")
 
-        # Type verification for elec_names
+    @staticmethod
+    def validate_elec_names(elec_names):
         if not isinstance(elec_names, str):
             raise TypeError("elec_names must be a string.")
+        SampleValidator.elect_names_to_list(elec_names)
 
-        self.elect_names_to_list(elect_names=elec_names)
-
-        # Type verification for adm_id
+    @staticmethod
+    def validate_adm_id(adm_id):
         if not isinstance(adm_id, int):
             raise TypeError("adm_id must be an integer.")
 
-        # Type verification for rec_id
+    @staticmethod
+    def validate_rec_id(rec_id):
         if not isinstance(rec_id, int):
             raise TypeError("rec_id must be an integer.")
 
-        # Type verification for duration_in_sec
+    @staticmethod
+    def validate_duration_in_sec(duration_in_sec):
         if not isinstance(duration_in_sec, int):
             raise TypeError("duration_in_sec must be an integer.")
 
-        # Type verification for sample_bytes
+    @staticmethod
+    def validate_sample_bytes(sample_bytes):
         if not isinstance(sample_bytes, int):
             raise TypeError("sample_bytes must be an integer.")
 
-        # Type verification for data_file
+    @staticmethod
+    def validate_data_file(data_file):
         if not isinstance(data_file, str):
             raise TypeError("data_file must be a string.")
 
-        # If all types are correct, assign the attributes
-        self.start_ts = start_ts
-        self.num_samples = num_samples
-        self.sample_freq = sample_freq
-        self.conversion_factor = conversion_factor
-        self.num_channels = num_channels
-        self.elec_names = elec_names
-        self.adm_id = adm_id
-        self.rec_id = rec_id
-        self.duration_in_sec = duration_in_sec
-        self.sample_bytes = sample_bytes
-        self.data_file = data_file
-
-    @classmethod
-    def elect_names_to_list(cls, sample=None, elect_names=None):
-        if elect_names is None:
-            elect_names = sample.elec_names
+    @staticmethod
+    def elect_names_to_list(elec_names):
         try:
-            elec_names_list = elect_names.strip("[]").split(",")
+            elec_names_list = elec_names.strip("[]").split(",")
             elec_names_list = [
                 name.strip().replace("'", "") for name in elec_names_list
             ]
@@ -131,18 +103,35 @@ class Sample(Base):
             raise ValueError("elec_names must be a string representation of a list.")
         return elec_names_list
 
-    def __repr__(self):
-        return (
-            f"<Sample(start_ts={self.start_ts}, "
-            f"num_samples={self.num_samples}, "
-            f"sample_freq={self.sample_freq}, "
-            f"conversion_factor={self.conversion_factor}, "
-            f"num_channels={self.num_channels}, "
-            f"elec_names={self.elec_names}, "
-            f"pat_id={self.pat_id}, "
-            f"adm_id={self.adm_id}, "
-            f"rec_id={self.rec_id}, "
-            f"duration_in_sec={self.duration_in_sec}, "
-            f"sample_bytes={self.sample_bytes})"
-            f"data_file={self.data_file}>"
-        )
+    @classmethod
+    def validate_all(cls, **kwargs):
+        cls.validate_start_ts(kwargs.get("start_ts"))
+        cls.validate_num_samples(kwargs.get("num_samples"))
+        cls.validate_sample_freq(kwargs.get("sample_freq"))
+        cls.validate_conversion_factor(kwargs.get("conversion_factor"))
+        cls.validate_num_channels(kwargs.get("num_channels"))
+        cls.validate_elec_names(kwargs.get("elec_names"))
+        cls.validate_adm_id(kwargs.get("adm_id"))
+        cls.validate_rec_id(kwargs.get("rec_id"))
+        cls.validate_duration_in_sec(kwargs.get("duration_in_sec"))
+        cls.validate_sample_bytes(kwargs.get("sample_bytes"))
+        cls.validate_data_file(kwargs.get("data_file"))
+
+
+# samples_table = Table(
+#     "samples",
+#     metadata,
+#     Column("id", Integer, primary_key=True),
+#     Column("start_ts", DateTime, nullable=False),
+#     Column("num_samples", Integer, nullable=False),
+#     Column("sample_freq", Integer, nullable=False),
+#     Column("conversion_factor", Float, nullable=False),
+#     Column("num_channels", Integer, nullable=False),
+#     Column("elec_names", String, nullable=False),
+#     Column("pat_id", Integer, ForeignKey("patients.id"), nullable=False),
+#     Column("adm_id", Integer, nullable=False),
+#     Column("rec_id", BigInteger, nullable=False),
+#     Column("duration_in_sec", Integer, nullable=False),
+#     Column("sample_bytes", Integer, nullable=False),
+#     Column("data_file", String, nullable=False),
+# )
