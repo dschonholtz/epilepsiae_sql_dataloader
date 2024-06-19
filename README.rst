@@ -2,6 +2,9 @@
 EpilepsiaeSQLDataloader
 =======================
 
+# DEPRECATED
+
+This project has been deprecated in favor of the fork in the Wireless Network and Embedded Systems lab and their internal github repo. That code is currently closed source, but it and our generalized biomedical neural network prediction framework should be open sourced with our next paper.
 
 .. image:: https://img.shields.io/pypi/v/epilepsiae_sql_dataloader.svg
         :target: https://pypi.python.org/pypi/epilepsiae_sql_dataloader
