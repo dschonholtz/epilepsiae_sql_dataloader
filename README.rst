@@ -2,7 +2,9 @@
 EpilepsiaeSQLDataloader
 =======================
 
-# DEPRECATED
+======================
+DEPRECATED
+======================
 
 This project has been deprecated in favor of the fork in the Wireless Network and Embedded Systems lab and their internal github repo. That code is currently closed source, but it and our generalized biomedical neural network prediction framework should be open sourced with our next paper.
 
