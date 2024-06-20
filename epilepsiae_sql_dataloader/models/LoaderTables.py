@@ -82,19 +82,29 @@ class DataChunk(Base):
     patient: A relationship that links to the Patient instance associated with a data chunk.
     dataset: A relationship that links to the Dataset instance associated with a data chunk.
     state: A relationship that links to the SeizureState instance associated with a data chunk.
+    seizure_state_30m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 30 minutes
+    seizure_state_60m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 60 minutes
+    seizure_state_90m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 90 minutes
+    seizure_state_120m: An integer that is a 0 for non-seizure data and 1 for seizure data and 2 for pre-seizure at 120 minutes
     """
 
     __tablename__ = "data_chunks"
 
     id = Column(BigInteger, primary_key=True)
     patient_id = Column(Integer, ForeignKey("patients.id"))
-    seizure_state = Column(Integer)
     data_type = Column(SmallInteger)
     data = Column(BYTEA)
+    seizure_state = Column(Integer)
+    seizure_state_5m = Column(Integer)
+    seizure_state_15m = Column(Integer)
+    seizure_state_30m = Column(Integer)
+    seizure_state_60m = Column(Integer)
+    seizure_state_90m = Column(Integer)
+    seizure_state_120m = Column(Integer)
 
     patient = relationship(Patient, back_populates="chunks")
     idx_patient_seizure_data_type = Index(
-        "idx_patient_seizure_data_type", "patient_id", "seizure_state", "data_type"
+        "idx_patient_seizure_data_type", "patient_id", "data_type", "seizure_state"
     )
 
 
